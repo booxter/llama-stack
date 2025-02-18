@@ -3,7 +3,8 @@
 #
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
-from datetime import datetime
+# from datetime import datetime
+import os
 from typing import Any, Dict, Optional
 
 from llama_stack.apis.datasetio import DatasetIO
@@ -27,6 +28,11 @@ from llama_stack.providers.inline.post_training.torchtune.recipes.lora_finetunin
 )
 from llama_stack.schema_utils import webmethod
 
+from .scheduler import Job, Scheduler
+from .scheduler import JobStatus as SchedulerJobStatus
+
+os.environ["OMP_NUM_THREADS"] = "1"  # Or set to a lower number
+
 
 class TorchtunePostTrainingImpl:
     def __init__(
@@ -39,13 +45,11 @@ class TorchtunePostTrainingImpl:
         self.datasetio_api = datasetio_api
         self.datasets_api = datasets
 
-        # TODO: assume sync job, will need jobs API for async scheduling
-        self.jobs = {}
-        self.checkpoints_dict = {}
+        self._scheduler = Scheduler()
 
     async def supervised_fine_tune(
         self,
-        job_uuid: str,
+        job_uuid: str,  # TODO: remove job_uuid from API (at least don't require it)
         training_config: TrainingConfig,
         hyperparam_search_config: Dict[str, Any],
         logger_config: Dict[str, Any],
@@ -53,20 +57,14 @@ class TorchtunePostTrainingImpl:
         checkpoint_dir: Optional[str],
         algorithm_config: Optional[AlgorithmConfig],
     ) -> PostTrainingJob:
-        if job_uuid in self.jobs:
+        if job_uuid in self._scheduler.get_jobs():
             raise ValueError(f"Job {job_uuid} already exists")
 
-        post_training_job = PostTrainingJob(job_uuid=job_uuid)
-
-        job_status_response = PostTrainingJobStatusResponse(
-            job_uuid=job_uuid,
-            status=JobStatus.scheduled,
-            scheduled_at=datetime.now(),
-        )
-        self.jobs[job_uuid] = job_status_response
-
         if isinstance(algorithm_config, LoraFinetuningConfig):
-            try:
+
+            # TODO: do something with callbacks
+            async def handler(on_log_message_cb, on_status_change_cb):
+                # TODO: try on_log_message_cb here to confirm it works?
                 recipe = LoraFinetuningSingleDevice(
                     self.config,
                     job_uuid,
@@ -79,26 +77,18 @@ class TorchtunePostTrainingImpl:
                     self.datasetio_api,
                     self.datasets_api,
                 )
-
-                job_status_response.status = JobStatus.in_progress
-                job_status_response.started_at = datetime.now()
-
                 await recipe.setup()
                 resources_allocated, checkpoints = await recipe.train()
-
-                self.checkpoints_dict[job_uuid] = checkpoints
-                job_status_response.resources_allocated = resources_allocated
-                job_status_response.checkpoints = checkpoints
-                job_status_response.status = JobStatus.completed
-                job_status_response.completed_at = datetime.now()
-
-            except Exception:
-                job_status_response.status = JobStatus.failed
-                raise
+                # TODO: return typed Artifacts through callback
+                # return resources_allocated, checkpoints
+                on_status_change_cb(SchedulerJobStatus.completed)
         else:
             raise NotImplementedError()
 
-        return post_training_job
+        print("Scheduling job with uuid", job_uuid)
+        job_uuid = self._scheduler.schedule(Job(handler), job_uuid=job_uuid)
+        print("Scheduled job with uuid", job_uuid)
+        return PostTrainingJob(job_uuid=job_uuid)
 
     async def preference_optimize(
         self,
@@ -111,19 +101,40 @@ class TorchtunePostTrainingImpl:
     ) -> PostTrainingJob: ...
 
     async def get_training_jobs(self) -> ListPostTrainingJobsResponse:
-        return ListPostTrainingJobsResponse(data=[PostTrainingJob(job_uuid=uuid_) for uuid_ in self.jobs])
+        return ListPostTrainingJobsResponse(
+            data=[PostTrainingJob(job_uuid=uuid_) for uuid_ in self._scheduler.get_jobs()]
+        )
 
     @webmethod(route="/post-training/job/status")
     async def get_training_job_status(self, job_uuid: str) -> Optional[PostTrainingJobStatusResponse]:
-        return self.jobs.get(job_uuid, None)
+        status = self._scheduler.get_status(job_uuid)
+        # TODO: cover all options
+        match status:
+            case SchedulerJobStatus.new:
+                status = JobStatus.scheduled
+            case SchedulerJobStatus.scheduled:
+                status = JobStatus.scheduled
+            case SchedulerJobStatus.running:
+                status = JobStatus.in_progress
+            case SchedulerJobStatus.completed:
+                status = JobStatus.completed
+            case SchedulerJobStatus.failed:
+                status = JobStatus.failed
+            case _:
+                raise NotImplementedError()
+
+        return PostTrainingJobStatusResponse(
+            job_uuid=job_uuid,
+            status=status,
+            # scheduled_at=datetime.now(),
+        )
 
     @webmethod(route="/post-training/job/cancel")
     async def cancel_training_job(self, job_uuid: str) -> None:
-        raise NotImplementedError("Job cancel is not implemented yet")
+        self._scheduler.cancel(job_uuid)
 
     @webmethod(route="/post-training/job/artifacts")
     async def get_training_job_artifacts(self, job_uuid: str) -> Optional[PostTrainingJobArtifactsResponse]:
-        if job_uuid in self.checkpoints_dict:
-            checkpoints = self.checkpoints_dict.get(job_uuid, [])
-            return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=checkpoints)
-        return None
+        # TODO: Handle transformation of artifacts into API call
+        artifacts = self._scheduler.get_artifacts(job_uuid)
+        return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=[])
