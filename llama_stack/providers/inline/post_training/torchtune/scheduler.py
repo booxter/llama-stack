@@ -34,6 +34,7 @@ class Job:
         self._deps = deps or []
         # TODO: status should probably be a scheduler thing
         self._status = JobStatus.new
+        self._artifacts: list[JobArtifact] = []
 
     # Defines dependencies to fulfill to be able to execute the job
     # These could be hardware resources; desired states for other jobs; etc.
@@ -51,6 +52,18 @@ class Job:
     @property
     def handler(self):
         return self._handler
+
+    @property
+    def artifacts(self) -> list[JobArtifact]:
+        return self._artifacts
+
+    def register_artifact(self, name, type_, uri, metadata):
+        self._artifacts.append({
+            "name": name,
+            "type": type_,
+            "uri": uri,
+            "metadata": metadata
+        })
 
 
 # TODO: add tracing capabilities
@@ -82,6 +95,9 @@ class Scheduler:
     def _on_status_change_cb(self, job, status):
         job._status = status
 
+    def _on_artifact_collected_cb(self, job, name, type_, uri, metadata):
+        job.register_artifact(name, type_, uri, metadata)
+
     # called by provider to add job to queue
     def schedule(self, job: Job, job_uuid: JobID | None = None) -> JobID:
         job_uuid = job_uuid or str(uuid.uuid4())
@@ -95,9 +111,9 @@ class Scheduler:
         print("Running job", job_uuid)
         asyncio.run_coroutine_threadsafe(
             job.handler(
-                # TODO: add on_artifact_collected_cb?
                 functools.partial(self._on_log_message_cb, job),
-                functools.partial(self._on_status_change_cb, job)
+                functools.partial(self._on_status_change_cb, job),
+                functools.partial(self._on_artifact_collected_cb, job)
             ), self._loop)
         job._status = JobStatus.running
         print("Job is running now", job_uuid)
@@ -127,6 +143,4 @@ class Scheduler:
         return list(self._jobs.keys())
 
     def get_artifacts(self, job_uuid) -> list[JobArtifact]:
-        # TODO: actually return collected artifacts
-        print("Getting artifacts")
-        return []
+        return self._jobs[job_uuid].artifacts

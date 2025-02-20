@@ -63,7 +63,7 @@ class TorchtunePostTrainingImpl:
         if isinstance(algorithm_config, LoraFinetuningConfig):
 
             # TODO: do something with callbacks
-            async def handler(on_log_message_cb, on_status_change_cb):
+            async def handler(on_log_message_cb, on_status_change_cb, on_artifact_collected_cb):
                 # TODO: try on_log_message_cb here to confirm it works?
                 recipe = LoraFinetuningSingleDevice(
                     self.config,
@@ -80,7 +80,10 @@ class TorchtunePostTrainingImpl:
                 await recipe.setup()
                 resources_allocated, checkpoints = await recipe.train()
                 # TODO: return typed Artifacts through callback
+                for checkpoint in checkpoints:
+                    on_artifact_collected_cb(checkpoint.identifier, "checkpoint", checkpoint.path, checkpoint)
                 # return resources_allocated, checkpoints
+                # TODO: scheduler should probably control the completion status instead
                 on_status_change_cb(SchedulerJobStatus.completed)
         else:
             raise NotImplementedError()
@@ -137,4 +140,4 @@ class TorchtunePostTrainingImpl:
     async def get_training_job_artifacts(self, job_uuid: str) -> Optional[PostTrainingJobArtifactsResponse]:
         # TODO: Handle transformation of artifacts into API call
         artifacts = self._scheduler.get_artifacts(job_uuid)
-        return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=[])
+        return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=[artifact['metadata'] for artifact in artifacts])
