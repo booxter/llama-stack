@@ -1,14 +1,16 @@
 import asyncio
+from datetime import datetime
 from enum import Enum
 import functools
 import threading
-from typing import Any, Dict
+from typing import Any, Dict, Tuple, Iterable
 import uuid
 
 
 type JobDependency = Dict[str, Any] # TBD exact shape
 type JobArtifact = Dict[str, Any] # TBD exact shape
 type JobID = str # TBD exact shape
+type JobStateTransition = Tuple[datetime, JobStatus]
 
 # TODO: add type hints everywhere
 
@@ -26,15 +28,19 @@ class JobStatus(Enum):
   completed = "completed"
 
 
+_COMPLETED_STATUSES = {JobStatus.completed, JobStatus.failed}
+
+
 class Job:
     # TODO: add type hint for handler callable
     def __init__(self, handler, deps: list[JobDependency] | None = None):
         super().__init__()
         self._handler = handler
         self._deps = deps or []
-        # TODO: status should probably be a scheduler thing
-        self._status = JobStatus.new
         self._artifacts: list[JobArtifact] = []
+        # TODO: track states in scheduler
+        self._state_transitions: list[JobStateTransition] = []
+        self.status = JobStatus.new
 
     # Defines dependencies to fulfill to be able to execute the job
     # These could be hardware resources; desired states for other jobs; etc.
@@ -53,6 +59,16 @@ class Job:
     def handler(self):
         return self._handler
 
+    # TODO: status should probably be a scheduler thing
+    @property
+    def status(self) -> JobStatus:
+        return self._status
+
+    @status.setter
+    def status(self, status: JobStatus):
+        self._status = status
+        self._state_transitions.append((datetime.now(), status))
+
     @property
     def artifacts(self) -> list[JobArtifact]:
         return self._artifacts
@@ -64,6 +80,24 @@ class Job:
             "uri": uri,
             "metadata": metadata
         })
+
+    def _find_state_transition_date(self, status: Iterable[JobStatus]) -> datetime | None:
+        for date, s in reversed(self._state_transitions):
+            if s in status:
+                return date
+
+    @property
+    def scheduled_at(self) -> datetime | None:
+        return self._find_state_transition_date([JobStatus.scheduled])
+
+    @property
+    def started_at(self) -> datetime | None:
+        return self._find_state_transition_date([JobStatus.running])
+
+    @property
+    def completed_at(self) -> datetime | None:
+        if self._status in _COMPLETED_STATUSES:
+            return self._find_state_transition_date(_COMPLETED_STATUSES)
 
 
 # TODO: add tracing capabilities
@@ -93,7 +127,7 @@ class Scheduler:
         pass
 
     def _on_status_change_cb(self, job, status):
-        job._status = status
+        job.status = status
 
     def _on_artifact_collected_cb(self, job, name, type_, uri, metadata):
         job.register_artifact(name, type_, uri, metadata)
@@ -104,7 +138,7 @@ class Scheduler:
 
         print(f"Scheduling job {job_uuid}")
         self._jobs[job_uuid] = job
-        job._status = JobStatus.scheduled
+        job.status = JobStatus.scheduled
         print(f"Scheduled job {job_uuid}")
 
         # TODO: untangle schedule api from execution (e.g. need to handle job deps)
@@ -115,7 +149,7 @@ class Scheduler:
                 functools.partial(self._on_status_change_cb, job),
                 functools.partial(self._on_artifact_collected_cb, job)
             ), self._loop)
-        job._status = JobStatus.running
+        job.status = JobStatus.running
         print("Job is running now", job_uuid)
 
         return job_uuid
@@ -123,13 +157,11 @@ class Scheduler:
     def cancel(self, job_uuid):
         raise NotImplementedError()
 
-    def get_status(self, job_uuid) -> JobStatus:
-        print(f"Getting status for job {job_uuid}")
-        job = self._jobs.get(job_uuid, None)
-        if job is None:
+    def get_job(self, job_uuid) -> Job:
+        try:
+            return self._jobs[job_uuid]
+        except KeyError:
             raise ValueError(f"Job {job_uuid} not found")
-        print(f"Job {job_uuid} status is {job._status}")
-        return job._status
 
     def tail(self, job_uuid):
         raise NotImplementedError()

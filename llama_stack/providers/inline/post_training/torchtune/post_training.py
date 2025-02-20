@@ -62,9 +62,9 @@ class TorchtunePostTrainingImpl:
 
         if isinstance(algorithm_config, LoraFinetuningConfig):
 
-            # TODO: do something with callbacks
             async def handler(on_log_message_cb, on_status_change_cb, on_artifact_collected_cb):
-                # TODO: try on_log_message_cb here to confirm it works?
+                # TODO: try on_log_message_cb here to confirm it works
+
                 recipe = LoraFinetuningSingleDevice(
                     self.config,
                     job_uuid,
@@ -78,11 +78,11 @@ class TorchtunePostTrainingImpl:
                     self.datasets_api,
                 )
                 await recipe.setup()
+                # TODO: what to do with resources_allocated?
                 resources_allocated, checkpoints = await recipe.train()
-                # TODO: return typed Artifacts through callback
                 for checkpoint in checkpoints:
                     on_artifact_collected_cb(checkpoint.identifier, "checkpoint", checkpoint.path, checkpoint)
-                # return resources_allocated, checkpoints
+
                 # TODO: scheduler should probably control the completion status instead
                 on_status_change_cb(SchedulerJobStatus.completed)
         else:
@@ -110,9 +110,10 @@ class TorchtunePostTrainingImpl:
 
     @webmethod(route="/post-training/job/status")
     async def get_training_job_status(self, job_uuid: str) -> Optional[PostTrainingJobStatusResponse]:
-        status = self._scheduler.get_status(job_uuid)
+        job = self._scheduler.get_job(job_uuid)
+
         # TODO: cover all options
-        match status:
+        match job.status:
             case SchedulerJobStatus.new:
                 status = JobStatus.scheduled
             case SchedulerJobStatus.scheduled:
@@ -129,7 +130,9 @@ class TorchtunePostTrainingImpl:
         return PostTrainingJobStatusResponse(
             job_uuid=job_uuid,
             status=status,
-            # scheduled_at=datetime.now(),
+            scheduled_at=job.scheduled_at,
+            started_at=job.started_at,
+            completed_at=job.completed_at,
         )
 
     @webmethod(route="/post-training/job/cancel")
