@@ -220,4 +220,4 @@ class Scheduler:
         return list(self._jobs.keys())
 
     def get_artifacts(self, job_uuid) -> list[JobArtifact]:
-        return self._jobs[job_uuid].artifacts
+        return self.get_job(job_uuid).artifacts
