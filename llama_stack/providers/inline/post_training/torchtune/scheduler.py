@@ -151,6 +151,8 @@ _BACKENDS = {
 # TODO: add tracing capabilities
 class Scheduler:
     def __init__(self, backend: str = "naive"):
+        # TODO: restore from disc at startup
+        # TODO: access jobs through a persisting facade
         self._jobs: dict[JobID, Job] = {}
         self._backend = _BACKENDS[backend]()
 
@@ -212,6 +214,7 @@ class Scheduler:
         job = self.get_job(job_uuid)
         if job.status not in _COMPLETED_STATUSES:
             raise ValueError(f"Job {job_uuid} is not completed, cannot delete")
+        # TODO: is it racy?..
         del self._jobs[job_uuid]
 
     # TODO: return complete jobs? or just more stuff?
