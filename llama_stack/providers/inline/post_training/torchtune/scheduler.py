@@ -197,8 +197,15 @@ class Scheduler:
     def tail(self, job_uuid):
         raise NotImplementedError()
 
+    # TODO: implement it in API, make sure it works
+    # TODO: clean up artifacts from disc too
     def delete(self, job_uuid):
-        raise NotImplementedError()
+        job = self._jobs.get(job_uuid, None)
+        if job is None:
+            raise ValueError(f"Job {job_uuid} not found")
+        if job.status not in _COMPLETED_STATUSES:
+            raise ValueError(f"Job {job_uuid} is not completed, cannot delete")
+        del self._jobs[job_uuid]
 
     # TODO: return complete jobs? or just more stuff?
     def get_jobs(self) -> list[JobID]:
