@@ -100,10 +100,21 @@ class Job:
             return self._find_state_transition_date(_COMPLETED_STATUSES)
 
 
-# TODO: add tracing capabilities
-class Scheduler:
+# TODO: should it be an abstract interface?
+class SchedulerBackend:
+    def _on_log_message_cb(self, job, message):
+        pass
+
+    def _on_status_change_cb(self, job, status):
+        pass
+
+    def _on_artifact_collected_cb(self, job, name, type_, uri, metadata):
+        pass
+
+
+
+class NaiveSchedulerBackend(SchedulerBackend):
     def __init__(self):
-        self._jobs: dict[JobID, Job] = {}
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
@@ -116,6 +127,31 @@ class Scheduler:
     def shutdown(self):
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join()
+
+    def schedule(self, job: Job):
+        asyncio.run_coroutine_threadsafe(
+            job.handler(
+                functools.partial(self._on_log_message_cb, job),
+                functools.partial(self._on_status_change_cb, job),
+                functools.partial(self._on_artifact_collected_cb, job)
+            ), self._loop)
+
+
+_BACKENDS = {
+    "naive": NaiveSchedulerBackend,
+}
+
+
+# TODO: add tracing capabilities
+class Scheduler:
+    def __init__(self, backend: str = "naive"):
+        self._jobs: dict[JobID, Job] = {}
+        self._backend = _BACKENDS[backend]()
+
+        # TODO: Wrap instead of replacing
+        self._backend._on_log_message_cb = self._on_log_message_cb
+        self._backend._on_status_change_cb = self._on_status_change_cb
+        self._backend._on_artifact_collected_cb = self._on_artifact_collected_cb
 
     def _on_log_message_cb(self, job, message):
         # this will be called whenever the Job handler calls on_log_message_cb.
@@ -143,12 +179,7 @@ class Scheduler:
 
         # TODO: untangle schedule api from execution (e.g. need to handle job deps)
         print("Running job", job_uuid)
-        asyncio.run_coroutine_threadsafe(
-            job.handler(
-                functools.partial(self._on_log_message_cb, job),
-                functools.partial(self._on_status_change_cb, job),
-                functools.partial(self._on_artifact_collected_cb, job)
-            ), self._loop)
+        self._backend.schedule(job)
         job.status = JobStatus.running
         print("Job is running now", job_uuid)
 
