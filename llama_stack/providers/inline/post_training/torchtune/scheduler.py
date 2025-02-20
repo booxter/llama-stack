@@ -191,11 +191,8 @@ class Scheduler:
         return job_uuid
 
     def cancel(self, job_uuid):
-        job = self._jobs.get(job_uuid, None)
-        if job is None:
-            raise ValueError(f"Job {job_uuid} not found")
         # TODO: actually stop the job handler async task
-        job.cancel()
+        self.get_job(job_uuid).cancel()
 
     def get_job(self, job_uuid) -> Job:
         try:
@@ -207,18 +204,12 @@ class Scheduler:
     # TODO: do we start from the first message or from the end (only new
     #       messages), or last X and then wait for more?
     def tail(self, job_uuid):
-        # TODO: repetetive; make the ValueError raising a common helper and reuse
-        job = self._jobs.get(job_uuid, None)
-        if job is None:
-            raise ValueError(f"Job {job_uuid} not found")
-        yield from job.logs
+        yield from self.get_job(job_uuid).logs
 
     # TODO: implement it in API, make sure it works
     # TODO: clean up artifacts from disc too
     def delete(self, job_uuid):
-        job = self._jobs.get(job_uuid, None)
-        if job is None:
-            raise ValueError(f"Job {job_uuid} not found")
+        job = self.get_job(job_uuid)
         if job.status not in _COMPLETED_STATUSES:
             raise ValueError(f"Job {job_uuid} is not completed, cannot delete")
         del self._jobs[job_uuid]
