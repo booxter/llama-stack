@@ -38,6 +38,7 @@ class Job:
         self._handler = handler
         self._deps = deps or []
         self._artifacts: list[JobArtifact] = []
+        self.logs: list[str] = []
         # TODO: track states in scheduler?
         self._state_transitions: list[JobStateTransition] = [(datetime.now(), JobStatus.new)]
 
@@ -106,6 +107,7 @@ class Job:
 
 # TODO: should it be an abstract interface?
 class SchedulerBackend:
+    # TODO: dump logs to disc?
     def _on_log_message_cb(self, job, message):
         pass
 
@@ -163,8 +165,7 @@ class Scheduler:
         # screen, push to external storage or whatever else provider may want to do with
         # it. Later, when the job is complete, the collected logs will be one of the
         # artifacts that will be returned through API.
-        # TODO: actually do something with the logs
-        pass
+        job.logs.append(message) # and/or push to external storage?
 
     def _on_status_change_cb(self, job, status):
         job.status = status
@@ -202,8 +203,15 @@ class Scheduler:
         except KeyError:
             raise ValueError(f"Job {job_uuid} not found")
 
+    # TODO: this will require a streaming implementation: block for new messages
+    # TODO: do we start from the first message or from the end (only new
+    #       messages), or last X and then wait for more?
     def tail(self, job_uuid):
-        raise NotImplementedError()
+        # TODO: repetetive; make the ValueError raising a common helper and reuse
+        job = self._jobs.get(job_uuid, None)
+        if job is None:
+            raise ValueError(f"Job {job_uuid} not found")
+        yield from job.logs
 
     # TODO: implement it in API, make sure it works
     # TODO: clean up artifacts from disc too
