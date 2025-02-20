@@ -64,7 +64,9 @@ class TorchtunePostTrainingImpl:
 
             async def handler(on_log_message_cb, on_status_change_cb, on_artifact_collected_cb):
                 # TODO: try on_log_message_cb here to confirm it works
+                on_log_message_cb("Starting job")
 
+                on_log_message_cb("Setting up recipe...")
                 recipe = LoraFinetuningSingleDevice(
                     self.config,
                     job_uuid,
@@ -78,10 +80,17 @@ class TorchtunePostTrainingImpl:
                     self.datasets_api,
                 )
                 await recipe.setup()
+                on_log_message_cb("Recipe setup complete")
+
+                on_log_message_cb("Training model...")
                 # TODO: what to do with resources_allocated?
                 resources_allocated, checkpoints = await recipe.train()
+                on_log_message_cb("Training complete")
+
+                on_log_message_cb("Collecting artifacts...")
                 for checkpoint in checkpoints:
                     on_artifact_collected_cb(checkpoint.identifier, "checkpoint", checkpoint.path, checkpoint)
+                on_log_message_cb("Artifacts collected")
 
                 # TODO: scheduler should probably control the completion status instead
                 on_status_change_cb(SchedulerJobStatus.completed)

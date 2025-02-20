@@ -118,3 +118,6 @@ while True:
 
 end_time = time.time()
 print("Job completed in", end_time - start_time, "seconds!")
+
+print('Artifacts:')
+print(client.post_training.job.artifacts(job_uuid=job_uuid))
