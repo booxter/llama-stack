@@ -108,6 +108,11 @@ class TorchtunePostTrainingImpl:
             data=[PostTrainingJob(job_uuid=uuid_) for uuid_ in self._scheduler.get_jobs()]
         )
 
+    # TODO: fix handling of artifacts (e.g. they may not be just checkpoints)
+    @staticmethod
+    def _get_checkpoints(job):
+        return [artifact['metadata'] for artifact in job.artifacts]
+
     @webmethod(route="/post-training/job/status")
     async def get_training_job_status(self, job_uuid: str) -> Optional[PostTrainingJobStatusResponse]:
         job = self._scheduler.get_job(job_uuid)
@@ -133,6 +138,7 @@ class TorchtunePostTrainingImpl:
             scheduled_at=job.scheduled_at,
             started_at=job.started_at,
             completed_at=job.completed_at,
+            checkpoints=self._get_checkpoints(job),
         )
 
     @webmethod(route="/post-training/job/cancel")
@@ -141,6 +147,5 @@ class TorchtunePostTrainingImpl:
 
     @webmethod(route="/post-training/job/artifacts")
     async def get_training_job_artifacts(self, job_uuid: str) -> Optional[PostTrainingJobArtifactsResponse]:
-        # TODO: Handle transformation of artifacts into API call
-        artifacts = self._scheduler.get_artifacts(job_uuid)
-        return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=[artifact['metadata'] for artifact in artifacts])
+        job = self._scheduler.get_job(job_uuid)
+        return PostTrainingJobArtifactsResponse(job_uuid=job_uuid, checkpoints=self._get_checkpoints(job))
