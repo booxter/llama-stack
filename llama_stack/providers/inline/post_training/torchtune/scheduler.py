@@ -14,11 +14,8 @@ type JobStateTransition = Tuple[datetime, JobStatus]
 
 # TODO: add type hints everywhere
 
-# TODO: we should consider 3rd party libraries for scheduling (celery?) and job
-# state machine
-
-
 # TODO: reconcile with API level options
+# TODO: use a library to maintain state machine transitions?
 class JobStatus(Enum):
   new = "new"
   scheduled = "scheduled"
@@ -143,6 +140,7 @@ class NaiveSchedulerBackend(SchedulerBackend):
             ), self._loop)
 
 
+# TODO: we should consider 3rd party libraries for alternative backends (celery?)
 _BACKENDS = {
     "naive": NaiveSchedulerBackend,
 }
@@ -152,6 +150,7 @@ _BACKENDS = {
 class Scheduler:
     def __init__(self, backend: str = "naive"):
         # TODO: restore from disc at startup
+        # TODO: resume jobs that were scheduled / running before the shutdown
         # TODO: access jobs through a persisting facade
         self._jobs: dict[JobID, Job] = {}
         self._backend = _BACKENDS[backend]()
