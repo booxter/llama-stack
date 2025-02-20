@@ -38,9 +38,8 @@ class Job:
         self._handler = handler
         self._deps = deps or []
         self._artifacts: list[JobArtifact] = []
-        # TODO: track states in scheduler
-        self._state_transitions: list[JobStateTransition] = []
-        self.status = JobStatus.new
+        # TODO: track states in scheduler?
+        self._state_transitions: list[JobStateTransition] = [(datetime.now(), JobStatus.new)]
 
     # Defines dependencies to fulfill to be able to execute the job
     # These could be hardware resources; desired states for other jobs; etc.
@@ -52,7 +51,9 @@ class Job:
 
     # called by user or scheduler (for non-resumable jobs?)
     def cancel(self):
-        raise NotImplementedError()
+        if self.status in _COMPLETED_STATUSES:
+            raise ValueError("Job is already completed, cannot cancel")
+        self.status = JobStatus.failed # TODO: add cancelled status?
 
     # TODO: add abstract handler interface
     @property
@@ -62,11 +63,15 @@ class Job:
     # TODO: status should probably be a scheduler thing
     @property
     def status(self) -> JobStatus:
-        return self._status
+        return self._state_transitions[-1][1]
 
     @status.setter
     def status(self, status: JobStatus):
-        self._status = status
+        if status in _COMPLETED_STATUSES and self.status in _COMPLETED_STATUSES:
+            # TODO: raise or just ignore?
+            raise ValueError(f"Job is already in a completed state ({self.status})")
+        if self.status == status:
+            return
         self._state_transitions.append((datetime.now(), status))
 
     @property
@@ -96,8 +101,7 @@ class Job:
 
     @property
     def completed_at(self) -> datetime | None:
-        if self._status in _COMPLETED_STATUSES:
-            return self._find_state_transition_date(_COMPLETED_STATUSES)
+        return self._find_state_transition_date(_COMPLETED_STATUSES)
 
 
 # TODO: should it be an abstract interface?
@@ -186,7 +190,11 @@ class Scheduler:
         return job_uuid
 
     def cancel(self, job_uuid):
-        raise NotImplementedError()
+        job = self._jobs.get(job_uuid, None)
+        if job is None:
+            raise ValueError(f"Job {job_uuid} not found")
+        # TODO: actually stop the job handler async task
+        job.cancel()
 
     def get_job(self, job_uuid) -> Job:
         try:
