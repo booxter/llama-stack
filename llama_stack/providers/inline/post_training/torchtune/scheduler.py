@@ -12,10 +12,18 @@ type JobArtifact = Dict[str, Any] # TBD exact shape
 type JobID = str # TBD exact shape
 type JobStateTransition = Tuple[datetime, JobStatus]
 
+# TODO: testing: add unit tests for the scheduler module
+# TODO: testing: introduce a stub provider, implement unit and e2e tests using it
+
+# TODO: introduce a new global API for job management (including client bindings)
+# TODO: move the module to a common space and consider how jobs are aggregated
+#       between different schedulers
+
 # TODO: add type hints everywhere
 
 # TODO: reconcile with API level options
 # TODO: use a library to maintain state machine transitions?
+# TODO: do we need any other states? (e.g. cancelled)
 class JobStatus(Enum):
   new = "new"
   scheduled = "scheduled"
@@ -153,6 +161,7 @@ class Scheduler:
         # TODO: resume jobs that were scheduled / running before the shutdown
         # TODO: access jobs through a persisting facade
         self._jobs: dict[JobID, Job] = {}
+        # TODO: add a way to switch backends (via config?)
         self._backend = _BACKENDS[backend]()
 
         # TODO: Wrap instead of replacing
