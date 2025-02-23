@@ -15,6 +15,7 @@ from llama_stack.apis.datasets import Datasets
 from llama_stack.apis.eval import Eval
 from llama_stack.apis.inference import Inference
 from llama_stack.apis.inspect import Inspect
+from llama_stack.apis.jobs import Jobs
 from llama_stack.apis.models import Models
 from llama_stack.apis.post_training import PostTraining
 from llama_stack.apis.safety import Safety
@@ -62,6 +63,7 @@ def api_protocol_map() -> Dict[Api, Any]:
         Api.agents: Agents,
         Api.inference: Inference,
         Api.inspect: Inspect,
+        Api.jobs: Jobs,
         Api.vector_io: VectorIO,
         Api.vector_dbs: VectorDBs,
         Api.models: Models,
@@ -203,6 +205,26 @@ async def resolve_impls(
                     provider_type="__builtin__",
                     config_class="llama_stack.distribution.inspect.DistributionInspectConfig",
                     module="llama_stack.distribution.inspect",
+                    api_dependencies=apis,
+                    deps__=([x.value for x in apis]),
+                ),
+            ),
+        )
+    )
+    sorted_providers.append(
+        (
+            "jobs",
+            ProviderWithSpec(
+                provider_id="__builtin__",
+                provider_type="__builtin__",
+                config={
+                    "run_config": run_config.dict(),
+                },
+                spec=InlineProviderSpec(
+                    api=Api.jobs,
+                    provider_type="__builtin__",
+                    config_class="llama_stack.distribution.jobs.DistributionJobsConfig",
+                    module="llama_stack.distribution.jobs",
                     api_dependencies=apis,
                     deps__=([x.value for x in apis]),
                 ),

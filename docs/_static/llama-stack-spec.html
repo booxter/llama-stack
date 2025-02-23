@@ -1826,6 +1826,27 @@
                 }
             }
         },
+        "/v1/jobs": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListJobsResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "Jobs"
+                ],
+                "description": "",
+                "parameters": []
+            }
+        },
         "/v1/models": {
             "get": {
                 "responses": {
@@ -6626,6 +6647,33 @@
                     "data"
                 ]
             },
+            "JobInfo": {
+                "type": "object",
+                "properties": {
+                    "uuid": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "uuid"
+                ]
+            },
+            "ListJobsResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/JobInfo"
+                        }
+                    }
+                },
+                "additionalProperties": false,
+                "required": [
+                    "data"
+                ]
+            },
             "ListModelsResponse": {
                 "type": "object",
                 "properties": {
@@ -8347,6 +8395,9 @@
             "name": "Inspect"
         },
         {
+            "name": "Jobs"
+        },
+        {
             "name": "Models"
         },
         {
@@ -8395,6 +8446,7 @@
                 "Eval",
                 "Inference",
                 "Inspect",
+                "Jobs",
                 "Models",
                 "PostTraining (Coming Soon)",
                 "Safety",

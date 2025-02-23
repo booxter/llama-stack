@@ -409,6 +409,7 @@ def main():
         apis_to_serve.add(inf.routing_table_api.value)
 
     apis_to_serve.add("inspect")
+    apis_to_serve.add("jobs")
     for api_str in apis_to_serve:
         api = Api(api_str)
 

@@ -1091,6 +1091,19 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterDatasetRequest'
         required: true
+  /v1/jobs:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListJobsResponse'
+      tags:
+        - Jobs
+      description: ''
+      parameters: []
   /v1/models:
     get:
       responses:
@@ -4204,6 +4217,24 @@ components:
       additionalProperties: false
       required:
         - data
+    JobInfo:
+      type: object
+      properties:
+        uuid:
+          type: string
+      additionalProperties: false
+      required:
+        - uuid
+    ListJobsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobInfo'
+      additionalProperties: false
+      required:
+        - data
     ListModelsResponse:
       type: object
       properties:
@@ -5275,6 +5306,7 @@ tags:
       Llama Stack Inference API for generating completions, chat completions, and
       embeddings.
   - name: Inspect
+  - name: Jobs
   - name: Models
   - name: PostTraining (Coming Soon)
   - name: Safety
@@ -5298,6 +5330,7 @@ x-tagGroups:
       - Eval
       - Inference
       - Inspect
+      - Jobs
       - Models
       - PostTraining (Coming Soon)
       - Safety
