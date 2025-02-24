@@ -20,7 +20,7 @@ from typing import (
 from pydantic import BaseModel, Field, field_validator
 from typing_extensions import Annotated
 
-from llama_stack.apis.common.content_types import ContentDelta, InterleavedContent
+from llama_stack.apis.common.content_types import ContentDelta, InterleavedContent, InterleavedContentItem
 from llama_stack.apis.models import Model
 from llama_stack.apis.telemetry.telemetry import MetricResponseMixin
 from llama_stack.models.llama.datatypes import (
@@ -165,6 +165,7 @@ class ToolResponse(BaseModel):
     call_id: str
     tool_name: Union[BuiltinTool, str]
     content: InterleavedContent
+    metadata: Optional[Dict[str, Any]] = None
 
     @field_validator("tool_name", mode="before")
     @classmethod
@@ -182,10 +183,12 @@ class ToolChoice(Enum):
 
     :cvar auto: The model may use tools if it determines that is appropriate.
     :cvar required: The model must use tools.
+    :cvar none: The model must not use tools.
     """
 
     auto = "auto"
     required = "required"
+    none = "none"
 
 
 @json_schema_type
@@ -326,7 +329,7 @@ class SystemMessageBehavior(Enum):
 class ToolConfig(BaseModel):
     """Configuration for tool use.
 
-    :param tool_choice: (Optional) Whether tool use is required or automatic. Defaults to ToolChoice.auto.
+    :param tool_choice: (Optional) Whether tool use is automatic, required, or none. Can also specify a tool name to use a specific tool. Defaults to ToolChoice.auto.
     :param tool_prompt_format: (Optional) Instructs the model how to format tool calls. By default, Llama Stack will attempt to use a format that is best adapted to the model.
         - `ToolPromptFormat.json`: The tool calls are formatted as a JSON object.
         - `ToolPromptFormat.function_tag`: The tool calls are enclosed in a <function=function_name> tag.
@@ -337,9 +340,16 @@ class ToolConfig(BaseModel):
             '{{function_definitions}}' to indicate where the function definitions should be inserted.
     """
 
-    tool_choice: Optional[ToolChoice] = Field(default=ToolChoice.auto)
+    tool_choice: Optional[ToolChoice | str] = Field(default=ToolChoice.auto)
     tool_prompt_format: Optional[ToolPromptFormat] = Field(default=None)
-    system_message_behavior: SystemMessageBehavior = Field(default=SystemMessageBehavior.append)
+    system_message_behavior: Optional[SystemMessageBehavior] = Field(default=SystemMessageBehavior.append)
+
+    def model_post_init(self, __context: Any) -> None:
+        if isinstance(self.tool_choice, str):
+            try:
+                self.tool_choice = ToolChoice[self.tool_choice]
+            except KeyError:
+                pass
 
 
 # This is an internally used class
@@ -391,6 +401,30 @@ class EmbeddingsResponse(BaseModel):
 
 class ModelStore(Protocol):
     def get_model(self, identifier: str) -> Model: ...
+
+
+class TextTruncation(Enum):
+    """Config for how to truncate text for embedding when text is longer than the model's max sequence length. Start and End semantics depend on whether the language is left-to-right or right-to-left.
+
+    :cvar none: No truncation (default). If the text is longer than the model's max sequence length, you will get an error.
+    :cvar start: Truncate from the start
+    :cvar end: Truncate from the end
+    """
+
+    none = "none"
+    start = "start"
+    end = "end"
+
+
+class EmbeddingTaskType(Enum):
+    """How is the embedding being used? This is only supported by asymmetric embedding models.
+
+    :cvar query: Used for a query for semantic search.
+    :cvar document: Used at indexing time when ingesting documents.
+    """
+
+    query = "query"
+    document = "document"
 
 
 @runtime_checkable
@@ -472,12 +506,18 @@ class Inference(Protocol):
     async def embeddings(
         self,
         model_id: str,
-        contents: List[InterleavedContent],
+        contents: List[str] | List[InterleavedContentItem],
+        text_truncation: Optional[TextTruncation] = TextTruncation.none,
+        output_dimension: Optional[int] = None,
+        task_type: Optional[EmbeddingTaskType] = None,
     ) -> EmbeddingsResponse:
         """Generate embeddings for content pieces using the specified model.
 
         :param model_id: The identifier of the model to use. The model must be an embedding model registered with Llama Stack and available via the /models endpoint.
-        :param contents: List of contents to generate embeddings for. Note that content can be multimodal. The behavior depends on the model and provider. Some models may only support text.
+        :param contents: List of contents to generate embeddings for. Each content can be a string or an InterleavedContentItem (and hence can be multimodal). The behavior depends on the model and provider. Some models may only support text.
+        :param output_dimension: (Optional) Output dimensionality for the embeddings. Only supported by Matryoshka models.
+        :param text_truncation: (Optional) Config for how to truncate text for embedding when text is longer than the model's max sequence length.
+        :param task_type: (Optional) How is the embedding being used? This is only supported by asymmetric embedding models.
         :returns: An array of embeddings, one for each content. Each embedding is a list of floats. The dimensionality of the embedding is model-specific; you can check model metadata using /models/{model_id}
         """
         ...

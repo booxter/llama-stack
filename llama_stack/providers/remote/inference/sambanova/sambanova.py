@@ -5,27 +5,45 @@
 # the root directory of this source tree.
 
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Optional
 
-from llama_models.llama3.api.chat_format import ChatFormat
-from llama_models.llama3.api.tokenizer import Tokenizer
 from openai import OpenAI
 
 from llama_stack.apis.common.content_types import (
     ImageContentItem,
     InterleavedContent,
+    InterleavedContentItem,
     TextContentItem,
 )
-from llama_stack.apis.inference import *  # noqa: F403
+from llama_stack.apis.inference import (
+    ChatCompletionRequest,
+    ChatCompletionResponse,
+    CompletionMessage,
+    EmbeddingsResponse,
+    EmbeddingTaskType,
+    Inference,
+    LogProbConfig,
+    Message,
+    ResponseFormat,
+    SamplingParams,
+    StopReason,
+    SystemMessage,
+    TextTruncation,
+    ToolCall,
+    ToolChoice,
+    ToolConfig,
+    ToolDefinition,
+    ToolPromptFormat,
+    ToolResponseMessage,
+    UserMessage,
+)
 from llama_stack.models.llama.datatypes import (
-    CoreModelId,
     GreedySamplingStrategy,
     TopKSamplingStrategy,
     TopPSamplingStrategy,
 )
 from llama_stack.providers.utils.inference.model_registry import (
     ModelRegistryHelper,
-    build_model_alias,
 )
 from llama_stack.providers.utils.inference.openai_compat import (
     process_chat_completion_stream_response,
@@ -35,56 +53,13 @@ from llama_stack.providers.utils.inference.prompt_adapter import (
 )
 
 from .config import SambaNovaImplConfig
-
-MODEL_ALIASES = [
-    build_model_alias(
-        "Meta-Llama-3.1-8B-Instruct",
-        CoreModelId.llama3_1_8b_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-3.1-70B-Instruct",
-        CoreModelId.llama3_1_70b_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-3.1-405B-Instruct",
-        CoreModelId.llama3_1_405b_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-3.2-1B-Instruct",
-        CoreModelId.llama3_2_1b_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-3.2-3B-Instruct",
-        CoreModelId.llama3_2_3b_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-3.3-70B-Instruct",
-        CoreModelId.llama3_3_70b_instruct.value,
-    ),
-    build_model_alias(
-        "Llama-3.2-11B-Vision-Instruct",
-        CoreModelId.llama3_2_11b_vision_instruct.value,
-    ),
-    build_model_alias(
-        "Llama-3.2-90B-Vision-Instruct",
-        CoreModelId.llama3_2_90b_vision_instruct.value,
-    ),
-    build_model_alias(
-        "Meta-Llama-Guard-3-8B",
-        CoreModelId.llama_guard_3_8b.value,
-    ),
-]
+from .models import MODEL_ENTRIES
 
 
 class SambaNovaInferenceAdapter(ModelRegistryHelper, Inference):
     def __init__(self, config: SambaNovaImplConfig) -> None:
-        ModelRegistryHelper.__init__(
-            self,
-            model_aliases=MODEL_ALIASES,
-        )
-
+        ModelRegistryHelper.__init__(self, model_entries=MODEL_ENTRIES)
         self.config = config
-        self.formatter = ChatFormat(Tokenizer.get_instance())
 
     async def initialize(self) -> None:
         return
@@ -160,13 +135,16 @@ class SambaNovaInferenceAdapter(ModelRegistryHelper, Inference):
                 yield chunk
 
         stream = _to_async_generator()
-        async for chunk in process_chat_completion_stream_response(stream, self.formatter, request):
+        async for chunk in process_chat_completion_stream_response(stream, request):
             yield chunk
 
     async def embeddings(
         self,
         model_id: str,
-        contents: List[InterleavedContent],
+        contents: List[str] | List[InterleavedContentItem],
+        text_truncation: Optional[TextTruncation] = TextTruncation.none,
+        output_dimension: Optional[int] = None,
+        task_type: Optional[EmbeddingTaskType] = None,
     ) -> EmbeddingsResponse:
         raise NotImplementedError()
 

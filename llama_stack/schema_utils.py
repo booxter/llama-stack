@@ -5,11 +5,9 @@
 # the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, Callable, List, Optional, Protocol, TypeVar
 
 from .strong_typing.schema import json_schema_type, register_schema  # noqa: F401
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -19,6 +17,14 @@ class WebMethod:
     request_examples: Optional[List[Any]] = None
     response_examples: Optional[List[Any]] = None
     method: Optional[str] = None
+    raw_bytes_request_body: Optional[bool] = False
+
+
+class HasWebMethod(Protocol):
+    __webmethod__: WebMethod
+
+
+T = TypeVar("T", bound=HasWebMethod)  # Bound T to classes that match this protocol
 
 
 def webmethod(
@@ -27,6 +33,7 @@ def webmethod(
     public: Optional[bool] = False,
     request_examples: Optional[List[Any]] = None,
     response_examples: Optional[List[Any]] = None,
+    raw_bytes_request_body: Optional[bool] = False,
 ) -> Callable[[T], T]:
     """
     Decorator that supplies additional metadata to an endpoint operation function.
@@ -44,6 +51,7 @@ def webmethod(
             public=public or False,
             request_examples=request_examples,
             response_examples=response_examples,
+            raw_bytes_request_body=raw_bytes_request_body,
         )
         return cls
 

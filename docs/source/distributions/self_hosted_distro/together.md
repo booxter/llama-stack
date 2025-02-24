@@ -18,7 +18,7 @@ The `llamastack/distribution-together` distribution consists of the following pr
 | agents | `inline::meta-reference` |
 | datasetio | `remote::huggingface`, `inline::localfs` |
 | eval | `inline::meta-reference` |
-| inference | `remote::together` |
+| inference | `remote::together`, `inline::sentence-transformers` |
 | safety | `inline::llama-guard` |
 | scoring | `inline::basic`, `inline::llm-as-judge`, `inline::braintrust` |
 | telemetry | `inline::meta-reference` |
@@ -46,6 +46,8 @@ The following models are available by default:
 - `meta-llama/Llama-3.3-70B-Instruct`
 - `meta-llama/Llama-Guard-3-8B`
 - `meta-llama/Llama-Guard-3-11B-Vision`
+- `togethercomputer/m2-bert-80M-8k-retrieval`
+- `togethercomputer/m2-bert-80M-32k-retrieval`
 
 
 ### Prerequisite: API Keys

@@ -21,6 +21,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -29,9 +30,7 @@
     "sentencepiece",
     "tqdm",
     "transformers",
-    "uvicorn",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "uvicorn"
   ],
   "cerebras": [
     "aiosqlite",
@@ -54,6 +53,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -88,6 +88,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -122,6 +123,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -157,6 +159,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -165,9 +168,7 @@
     "sentencepiece",
     "tqdm",
     "transformers",
-    "uvicorn",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "uvicorn"
   ],
   "hf-serverless": [
     "aiohttp",
@@ -192,6 +193,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -228,6 +230,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -240,9 +243,7 @@
     "tqdm",
     "transformers",
     "uvicorn",
-    "zmq",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "zmq"
   ],
   "meta-reference-quantized-gpu": [
     "accelerate",
@@ -269,6 +270,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -282,9 +284,7 @@
     "tqdm",
     "transformers",
     "uvicorn",
-    "zmq",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "zmq"
   ],
   "nvidia": [
     "aiosqlite",
@@ -306,6 +306,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -314,9 +315,7 @@
     "sentencepiece",
     "tqdm",
     "transformers",
-    "uvicorn",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "uvicorn"
   ],
   "ollama": [
     "aiohttp",
@@ -326,7 +325,6 @@
     "chardet",
     "chromadb-client",
     "datasets",
-    "faiss-cpu",
     "fastapi",
     "fire",
     "httpx",
@@ -340,17 +338,17 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
     "scikit-learn",
     "scipy",
     "sentencepiece",
+    "sqlite-vec",
     "tqdm",
     "transformers",
-    "uvicorn",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "uvicorn"
   ],
   "remote-vllm": [
     "aiosqlite",
@@ -373,6 +371,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -403,6 +402,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -411,9 +411,7 @@
     "sentencepiece",
     "tqdm",
     "transformers",
-    "uvicorn",
-    "sentence-transformers --no-deps",
-    "torch torchvision --index-url https://download.pytorch.org/whl/cpu"
+    "uvicorn"
   ],
   "tgi": [
     "aiohttp",
@@ -438,6 +436,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -471,6 +470,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",
@@ -505,6 +505,7 @@
     "pandas",
     "pillow",
     "psycopg2-binary",
+    "pymongo",
     "pypdf",
     "redis",
     "requests",

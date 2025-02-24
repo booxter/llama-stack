@@ -22,6 +22,19 @@ def run_with_pty(command):
         return _run_with_pty_unix(command)
 
 
+def in_notebook():
+    try:
+        from IPython import get_ipython
+
+        if "IPKernelApp" not in get_ipython().config:  # pragma: no cover
+            return False
+    except ImportError:
+        return False
+    except AttributeError:
+        return False
+    return True
+
+
 # run a command in a pseudo-terminal, with interrupt handling,
 # useful when you want to run interactive things
 def _run_with_pty_unix(command):
@@ -34,6 +47,7 @@ def _run_with_pty_unix(command):
     original_sigint = signal.getsignal(signal.SIGINT)
 
     ctrl_c_pressed = False
+    process = None
 
     def sigint_handler(signum, frame):
         nonlocal ctrl_c_pressed
@@ -98,7 +112,7 @@ def _run_with_pty_unix(command):
         signal.signal(signal.SIGINT, original_sigint)
 
         os.close(master)
-        if process.poll() is None:
+        if process and process.poll() is None:
             process.terminate()
             process.wait()
 

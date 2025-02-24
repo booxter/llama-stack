@@ -15,6 +15,8 @@ TEST_PYPI_VERSION=${TEST_PYPI_VERSION:-}
 # This timeout (in seconds) is necessary when installing PyTorch via uv since it's likely to time out
 # Reference: https://github.com/astral-sh/uv/pull/1694
 UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT:-500}
+UV_SYSTEM_PYTHON=${UV_SYSTEM_PYTHON:-}
+VIRTUAL_ENV=${VIRTUAL_ENV:-}
 
 if [ -n "$LLAMA_STACK_DIR" ]; then
   echo "Using llama-stack-dir=$LLAMA_STACK_DIR"
@@ -24,7 +26,7 @@ if [ -n "$LLAMA_MODELS_DIR" ]; then
 fi
 
 if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 <distribution_type> <build_name> <pip_dependencies> [<special_pip_deps>]" >&2
+  echo "Usage: $0 <distribution_type> <env_name> <pip_dependencies> [<special_pip_deps>]" >&2
   echo "Example: $0 <distribution_type> mybuild ./my-stack-build.yaml 'numpy pandas scipy'" >&2
   exit 1
 fi
@@ -33,8 +35,7 @@ special_pip_deps="$3"
 
 set -euo pipefail
 
-build_name="$1"
-env_name="llamastack-$build_name"
+env_name="$1"
 pip_dependencies="$2"
 
 # Define color codes
@@ -73,17 +74,27 @@ run() {
   local env_name="$1"
   local pip_dependencies="$2"
   local special_pip_deps="$3"
+  
+  if [ -n "$UV_SYSTEM_PYTHON" ] || [ "$env_name" == "__system__" ]; then 
+    echo "Installing dependencies in system Python environment"
+    # if env == __system__, ensure we set UV_SYSTEM_PYTHON
+    export UV_SYSTEM_PYTHON=1
+  elif [ "$VIRTUAL_ENV" == "$env_name" ]; then
+    echo "Virtual environment $env_name is already active"
+  else
+    echo "Using virtual environment $env_name"
+    uv venv "$env_name"
+    # shellcheck source=/dev/null
+    source "$env_name/bin/activate"
+  fi
 
-  echo "Using virtual environment $env_name"
-  uv venv "$env_name"
-  # shellcheck source=/dev/null
-  source "$env_name/bin/activate"
   if [ -n "$TEST_PYPI_VERSION" ]; then
     # these packages are damaged in test-pypi, so install them first
     uv pip install fastapi libcst
     # shellcheck disable=SC2086
     # we are building a command line so word splitting is expected
     uv pip install --extra-index-url https://test.pypi.org/simple/ \
+      --index-strategy unsafe-best-match \
       llama-models=="$TEST_PYPI_VERSION" llama-stack=="$TEST_PYPI_VERSION" \
       $pip_dependencies
     if [ -n "$special_pip_deps" ]; then

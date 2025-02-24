@@ -30,6 +30,7 @@ repos:
     rev: v0.9.4
     hooks:
     -   id: ruff
+        args: [ --fix ]
         exclude: ^llama_stack/strong_typing/.*$
     -   id: ruff-format
 
@@ -45,23 +46,26 @@ repos:
     hooks:
     -   id: uv-export
         args: [
-            "--frozen", 
-            "--no-hashes", 
-            "--no-emit-project", 
+            "--frozen",
+            "--no-hashes",
+            "--no-emit-project",
             "--output-file=requirements.txt"
         ]
         files: ^pyproject\.toml$
     -   id: uv-sync
 
-# -   repo: https://github.com/pre-commit/mirrors-mypy
-#     rev: v1.14.0
-#     hooks:
-#     -   id: mypy
-#         additional_dependencies:
-#           - types-requests
-#           - types-setuptools
-#           - pydantic
-#         args: [--ignore-missing-imports]
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+    -   id: mypy
+        additional_dependencies:
+          - uv==0.6.2
+          - mypy
+          - pytest
+          - rich
+          - types-requests
+          - pydantic
+        pass_filenames: false
 
 # - repo: https://github.com/jsh9/pydoclint
 #   rev: d88180a8632bb1602a4d81344085cf320f288c5a
@@ -75,19 +79,20 @@ repos:
 #     - id: markdown-link-check
 #       args: ['--quiet']
 
-# -   repo: local
-#     hooks:
-#       - id: distro-codegen
-#         name: Distribution Template Codegen
-#         additional_dependencies:
-#           - rich
-#           - pydantic
-#         entry: python -m llama_stack.scripts.distro_codegen
-#         language: python
-#         pass_filenames: false
-#         require_serial: true
-#         files: ^llama_stack/templates/.*$
-#         stages: [manual]
+-   repo: local
+    hooks:
+      - id: distro-codegen
+        name: Distribution Template Codegen
+        additional_dependencies:
+          - rich
+          - pydantic
+          - uv==0.6.0
+        entry: uv run python -m llama_stack.scripts.distro_codegen
+        language: python
+        pass_filenames: false
+        require_serial: true
+        files: ^llama_stack/templates/.*$
+        files: ^llama_stack/providers/.*/inference/.*/models\.py$
 
 ci:
     autofix_commit_msg: 🎨 [pre-commit.ci] Auto format from pre-commit.com hooks
