@@ -50,5 +50,26 @@ class DistributionJobsImpl(Jobs):
         ]))
         return ListJobsResponse(data=[JobInfo(uuid=job) for job in job_uuids])
 
+    # TODO: this should be improved
+    async def delete_job(self, job_id: str) -> None:
+        for scheduler in _JOB_SCHEDULERS:
+            try:
+                job = scheduler.get_job(job_id)
+            except ValueError:
+                continue
+            if job is not None:
+                scheduler.delete(job_id)
+                break
+
+    async def cancel_job(self, job_id: str) -> None:
+        for scheduler in _JOB_SCHEDULERS:
+            try:
+                job = scheduler.get_job(job_id)
+            except ValueError:
+                continue
+            if job is not None:
+                scheduler.cancel(job_id)
+                break
+
     async def shutdown(self) -> None:
         pass

@@ -25,3 +25,15 @@ class ListJobsResponse(BaseModel):
 class Jobs(Protocol):
     @webmethod(route="/jobs", method="GET")
     async def list_jobs(self) -> ListJobsResponse: ...
+
+    @webmethod(route="/jobs/{job_id}", method="DELETE")
+    async def delete_job(
+        self,
+        job_id: str,
+    ) -> None: ...
+
+    @webmethod(route="/jobs/{job_id}/cancel", method="POST")
+    async def cancel_job(
+        self,
+        job_id: str,
+    ) -> None: ...
