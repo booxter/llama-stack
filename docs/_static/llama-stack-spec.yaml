@@ -95,6 +95,20 @@ paths:
             schema:
               $ref: '#/components/schemas/BatchCompletionRequest'
         required: true
+  /v1/jobs/{job_id}/cancel:
+    post:
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Jobs
+      description: ''
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
   /v1/post-training/job/cancel:
     post:
       responses:
@@ -386,6 +400,20 @@ paths:
           in: path
           description: >-
             Key under which the file is stored (valid chars: a-zA-Z0-9_-/.)
+          required: true
+          schema:
+            type: string
+  /v1/jobs/{job_id}:
+    delete:
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Jobs
+      description: ''
+      parameters:
+        - name: job_id
+          in: path
           required: true
           schema:
             type: string
@@ -1076,6 +1104,19 @@ paths:
           required: true
           schema:
             type: string
+  /v1/jobs:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListJobsResponse'
+      tags:
+        - Jobs
+      description: ''
+      parameters: []
   /v1/models:
     get:
       responses:
@@ -4464,6 +4505,26 @@ components:
       title: ListFileResponse
       description: >-
         Response representing a list of file entries.
+    JobInfo:
+      type: object
+      properties:
+        uuid:
+          type: string
+      additionalProperties: false
+      required:
+        - uuid
+      title: JobInfo
+    ListJobsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobInfo'
+      additionalProperties: false
+      required:
+        - data
+      title: ListJobsResponse
     ListModelsResponse:
       type: object
       properties:
@@ -5667,6 +5728,7 @@ tags:
       Llama Stack Inference API for generating completions, chat completions, and
       embeddings.
   - name: Inspect
+  - name: Jobs
   - name: Models
   - name: PostTraining (Coming Soon)
   - name: Safety
@@ -5691,6 +5753,7 @@ x-tagGroups:
       - Files (Coming Soon)
       - Inference
       - Inspect
+      - Jobs
       - Models
       - PostTraining (Coming Soon)
       - Safety
