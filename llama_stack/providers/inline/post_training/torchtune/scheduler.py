@@ -65,6 +65,9 @@ class Job:
             raise ValueError("Job is already completed, cannot cancel")
         self.status = JobStatus.failed # TODO: add cancelled status?
 
+    # TODO: improve error logging / handling when handler crashes; I think it's
+    # silently swallowing it right now
+
     # TODO: add abstract handler interface
     @property
     def handler(self):
@@ -88,13 +91,8 @@ class Job:
     def artifacts(self) -> list[JobArtifact]:
         return self._artifacts
 
-    def register_artifact(self, name, type_, uri, metadata):
-        self._artifacts.append({
-            "name": name,
-            "type": type_,
-            "uri": uri,
-            "metadata": metadata
-        })
+    def register_artifact(self, artifact: JobArtifact):
+        self._artifacts.append(artifact)
 
     def _find_state_transition_date(self, status: Iterable[JobStatus]) -> datetime | None:
         for date, s in reversed(self._state_transitions):
@@ -123,7 +121,7 @@ class SchedulerBackend:
     def _on_status_change_cb(self, job, status):
         pass
 
-    def _on_artifact_collected_cb(self, job, name, type_, uri, metadata):
+    def _on_artifact_collected_cb(self, job: Job, artifact: JobArtifact):
         pass
 
 
@@ -184,8 +182,8 @@ class Scheduler:
     def _on_status_change_cb(self, job, status):
         job.status = status
 
-    def _on_artifact_collected_cb(self, job, name, type_, uri, metadata):
-        job.register_artifact(name, type_, uri, metadata)
+    def _on_artifact_collected_cb(self, job: Job, artifact: JobArtifact):
+        job.register_artifact(artifact)
 
     # called by provider to add job to queue
     def schedule(self, job: Job, job_uuid: JobID | None = None) -> JobID:

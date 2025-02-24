@@ -19,6 +19,7 @@ from llama_stack.apis.post_training import (
     PostTrainingJobArtifactsResponse,
     PostTrainingJobStatusResponse,
     TrainingConfig,
+    Checkpoint,
 )
 from llama_stack.distribution.jobs import register_job_scheduler
 from llama_stack.providers.inline.post_training.torchtune.config import (
@@ -29,7 +30,7 @@ from llama_stack.providers.inline.post_training.torchtune.recipes.lora_finetunin
 )
 from llama_stack.schema_utils import webmethod
 
-from .scheduler import Job, Scheduler
+from .scheduler import Job, Scheduler, JobArtifact
 from .scheduler import JobStatus as SchedulerJobStatus
 
 os.environ["OMP_NUM_THREADS"] = "1"  # Or set to a lower number
@@ -48,6 +49,14 @@ class TorchtunePostTrainingImpl:
 
         self._scheduler = Scheduler()
         register_job_scheduler(self._scheduler)
+
+    def _checkpoints_to_artifact(self, checkpoint: Checkpoint) -> JobArtifact:
+        return {
+            "type": "checkpoint",
+            "name": checkpoint.identifier,
+            "uri": checkpoint.path,
+            "metadata": checkpoint,
+        }
 
     async def supervised_fine_tune(
         self,
@@ -91,7 +100,8 @@ class TorchtunePostTrainingImpl:
 
                 on_log_message_cb("Collecting artifacts...")
                 for checkpoint in checkpoints:
-                    on_artifact_collected_cb(checkpoint.identifier, "checkpoint", checkpoint.path, checkpoint)
+                    artifact = self._checkpoints_to_artifact(checkpoint)
+                    on_artifact_collected_cb(artifact)
                 on_log_message_cb("Artifacts collected")
 
                 # TODO: scheduler should probably control the completion status instead

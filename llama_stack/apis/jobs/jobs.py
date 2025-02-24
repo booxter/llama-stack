@@ -4,7 +4,8 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
-from typing import List, Protocol, runtime_checkable
+from datetime import datetime
+from typing import List, Protocol, runtime_checkable, Optional
 
 from pydantic import BaseModel
 
@@ -26,6 +27,11 @@ class JobInfo(BaseModel):
     uuid: str
     type: str
     status: str
+
+    scheduled_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
     artifacts: List[JobArtifact]
 
 

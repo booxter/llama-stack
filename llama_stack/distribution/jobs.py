@@ -49,11 +49,16 @@ class DistributionJobsImpl(Jobs):
             uuid=job.id,
             type=job.type,
             status=job.status,
+
+            scheduled_at=job.scheduled_at,
+            started_at=job.started_at,
+            completed_at=job.completed_at,
+
             artifacts=[JobArtifact(
                 name=artifact['name'],
                 type=artifact['type'],
                 uri=artifact['uri'],
-                metadata=artifact['metadata'],
+                metadata=dict(artifact['metadata']),
             ) for artifact in job.artifacts],
         )
 
