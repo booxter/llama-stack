@@ -11,12 +11,22 @@ from pydantic import BaseModel
 from llama_stack.schema_utils import json_schema_type, webmethod
 
 
+# TODO: tighten schemas
+@json_schema_type
+class JobArtifact(BaseModel):
+    name: str
+    type: str
+    uri: str
+    metadata: dict
+
+
 # TODO: think through what should actually be exposed
 @json_schema_type
 class JobInfo(BaseModel):
     uuid: str
     type: str
     status: str
+    artifacts: List[JobArtifact]
 
 
 class ListJobsResponse(BaseModel):

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from llama_stack.apis.jobs import (
     JobInfo,
+    JobArtifact,
     Jobs,
     ListJobsResponse,
 )
@@ -43,12 +44,28 @@ class DistributionJobsImpl(Jobs):
     async def initialize(self) -> None:
         pass
 
+    def _job_to_job_info(self, job):
+        return JobInfo(
+            uuid=job.id,
+            type=job.type,
+            status=job.status,
+            artifacts=[JobArtifact(
+                name=artifact['name'],
+                type=artifact['type'],
+                uri=artifact['uri'],
+                metadata=artifact['metadata'],
+            ) for artifact in job.artifacts],
+        )
+
     async def list_jobs(self) -> ListJobsResponse:
         jobs = list(itertools.chain(*[
             scheduler.get_jobs()
             for scheduler in _JOB_SCHEDULERS
         ]))
-        return ListJobsResponse(data=[JobInfo(uuid=job.id, type=job.type, status=job.status) for job in jobs])
+        return ListJobsResponse(data=[
+            self._job_to_job_info(job)
+            for job in jobs
+        ])
 
     # TODO: this should be improved
     async def delete_job(self, job_id: str) -> None:
@@ -80,7 +97,7 @@ class DistributionJobsImpl(Jobs):
             except ValueError:
                 continue
             if job is not None:
-                return JobInfo(uuid=job.id, type=job.type, status=job.status)
+                return self._job_to_job_info(job)
         # TODO: raise error if job not found
 
     async def shutdown(self) -> None:
