@@ -48,7 +48,7 @@ class DistributionJobsImpl(Jobs):
             scheduler.get_jobs()
             for scheduler in _JOB_SCHEDULERS
         ]))
-        return ListJobsResponse(data=[JobInfo(uuid=job.id, type=job.type) for job in jobs])
+        return ListJobsResponse(data=[JobInfo(uuid=job.id, type=job.type, status=job.status) for job in jobs])
 
     # TODO: this should be improved
     async def delete_job(self, job_id: str) -> None:
@@ -60,6 +60,7 @@ class DistributionJobsImpl(Jobs):
             if job is not None:
                 scheduler.delete(job_id)
                 break
+        # TODO: raise error if job not found
 
     async def cancel_job(self, job_id: str) -> None:
         for scheduler in _JOB_SCHEDULERS:
@@ -70,6 +71,17 @@ class DistributionJobsImpl(Jobs):
             if job is not None:
                 scheduler.cancel(job_id)
                 break
+        # TODO: raise error if job not found
+
+    async def get_job(self, job_id: str) -> JobInfo:
+        for scheduler in _JOB_SCHEDULERS:
+            try:
+                job = scheduler.get_job(job_id)
+            except ValueError:
+                continue
+            if job is not None:
+                return JobInfo(uuid=job.id, type=job.type, status=job.status)
+        # TODO: raise error if job not found
 
     async def shutdown(self) -> None:
         pass

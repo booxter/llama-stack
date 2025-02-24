@@ -16,6 +16,7 @@ from llama_stack.schema_utils import json_schema_type, webmethod
 class JobInfo(BaseModel):
     uuid: str
     type: str
+    status: str
 
 
 class ListJobsResponse(BaseModel):
@@ -38,3 +39,9 @@ class Jobs(Protocol):
         self,
         job_id: str,
     ) -> None: ...
+
+    @webmethod(route="/jobs/{job_id}", method="GET")
+    async def get_job(
+        self,
+        job_id: str,
+    ) -> JobInfo: ...

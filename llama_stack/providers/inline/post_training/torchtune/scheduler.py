@@ -40,7 +40,8 @@ class Job:
     # TODO: add type hint for handler callable
     def __init__(self, job_type: str, handler, deps: list[JobDependency] | None = None):
         super().__init__()
-        self.id = str(uuid.uuid4())
+        # TODO: does id even belong here? should it be in scheduler?
+        self.id: JobID | None = None
         # TODO: validate job_type (enum?)
         self.type = job_type
         self._handler = handler
@@ -188,8 +189,8 @@ class Scheduler:
 
     # called by provider to add job to queue
     def schedule(self, job: Job, job_uuid: JobID | None = None) -> JobID:
-        if job_uuid is None:
-            job_uuid = job.id
+        job_uuid = job_uuid or str(uuid.uuid4())
+        job.id = job_uuid
         print(f"Scheduling job {job_uuid}")
         self._jobs[job_uuid] = job
         job.status = JobStatus.scheduled
