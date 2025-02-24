@@ -4,13 +4,25 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
+import itertools
+
 from pydantic import BaseModel
 
 from llama_stack.apis.jobs import (
+    JobInfo,
     Jobs,
     ListJobsResponse,
 )
 from llama_stack.distribution.datatypes import StackRunConfig
+
+
+_JOB_SCHEDULERS = []
+
+
+# TODO: is there a better way to dynamically iterate over providers to extract
+# their schedulers?..
+def register_job_scheduler(scheduler):
+    _JOB_SCHEDULERS.append(scheduler)
 
 
 class DistributionJobsConfig(BaseModel):
@@ -31,9 +43,12 @@ class DistributionJobsImpl(Jobs):
     async def initialize(self) -> None:
         pass
 
-    # TODO: implement
     async def list_jobs(self) -> ListJobsResponse:
-        return ListJobsResponse(data=[])
+        job_uuids = list(itertools.chain(*[
+            scheduler.get_jobs()
+            for scheduler in _JOB_SCHEDULERS
+        ]))
+        return ListJobsResponse(data=[JobInfo(uuid=job) for job in job_uuids])
 
     async def shutdown(self) -> None:
         pass

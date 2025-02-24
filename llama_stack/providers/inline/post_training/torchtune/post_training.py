@@ -20,6 +20,7 @@ from llama_stack.apis.post_training import (
     PostTrainingJobStatusResponse,
     TrainingConfig,
 )
+from llama_stack.distribution.jobs import register_job_scheduler
 from llama_stack.providers.inline.post_training.torchtune.config import (
     TorchtunePostTrainingConfig,
 )
@@ -46,6 +47,7 @@ class TorchtunePostTrainingImpl:
         self.datasets_api = datasets
 
         self._scheduler = Scheduler()
+        register_job_scheduler(self._scheduler)
 
     async def supervised_fine_tune(
         self,
