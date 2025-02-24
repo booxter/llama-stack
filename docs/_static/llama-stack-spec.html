@@ -178,6 +178,29 @@
                 }
             }
         },
+        "/v1/jobs/{job_id}/cancel": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "tags": [
+                    "Jobs"
+                ],
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            }
+        },
         "/v1/post-training/job/cancel": {
             "post": {
                 "responses": {
@@ -628,6 +651,29 @@
                         "name": "key",
                         "in": "path",
                         "description": "Key under which the file is stored (valid chars: a-zA-Z0-9_-/.)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            }
+        },
+        "/v1/jobs/{job_id}": {
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "tags": [
+                    "Jobs"
+                ],
+                "description": "",
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -1788,6 +1834,27 @@
                         }
                     }
                 ]
+            }
+        },
+        "/v1/jobs": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ListJobsResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "Jobs"
+                ],
+                "description": "",
+                "parameters": []
             }
         },
         "/v1/models": {
@@ -6895,7 +6962,8 @@
                 "additionalProperties": false,
                 "required": [
                     "uuid"
-                ]
+                ],
+                "title": "JobInfo"
             },
             "ListJobsResponse": {
                 "type": "object",
@@ -6910,7 +6978,8 @@
                 "additionalProperties": false,
                 "required": [
                     "data"
-                ]
+                ],
+                "title": "ListJobsResponse"
             },
             "ListModelsResponse": {
                 "type": "object",
