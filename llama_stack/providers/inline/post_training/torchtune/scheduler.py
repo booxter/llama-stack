@@ -142,6 +142,8 @@ class NaiveSchedulerBackend(SchedulerBackend):
         self._thread.join()
 
     def schedule(self, job: Job):
+        # TODO: this seems to run a single async at a time; what if they don't
+        # cooperate properly? run each in a separate thread?
         asyncio.run_coroutine_threadsafe(
             job.handler(
                 functools.partial(self._on_log_message_cb, job),
