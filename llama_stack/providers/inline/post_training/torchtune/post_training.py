@@ -59,7 +59,7 @@ class TorchtunePostTrainingImpl:
         checkpoint_dir: Optional[str],
         algorithm_config: Optional[AlgorithmConfig],
     ) -> PostTrainingJob:
-        if job_uuid in self._scheduler.get_jobs():
+        if any(job.id == job_uuid for job in self._scheduler.get_jobs()):
             raise ValueError(f"Job {job_uuid} already exists")
 
         if isinstance(algorithm_config, LoraFinetuningConfig):
@@ -100,7 +100,7 @@ class TorchtunePostTrainingImpl:
             raise NotImplementedError()
 
         print("Scheduling job with uuid", job_uuid)
-        job_uuid = self._scheduler.schedule(Job(handler), job_uuid=job_uuid)
+        job_uuid = self._scheduler.schedule(Job("supervised-fine-tune", handler), job_uuid=job_uuid)
         print("Scheduled job with uuid", job_uuid)
         return PostTrainingJob(job_uuid=job_uuid)
 
@@ -116,7 +116,7 @@ class TorchtunePostTrainingImpl:
 
     async def get_training_jobs(self) -> ListPostTrainingJobsResponse:
         return ListPostTrainingJobsResponse(
-            data=[PostTrainingJob(job_uuid=uuid_) for uuid_ in self._scheduler.get_jobs()]
+            data=[PostTrainingJob(job_uuid=job.id) for job in self._scheduler.get_jobs()]
         )
 
     # TODO: fix handling of artifacts (e.g. they may not be just checkpoints)

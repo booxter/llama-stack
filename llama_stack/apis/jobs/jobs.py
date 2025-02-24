@@ -15,6 +15,7 @@ from llama_stack.schema_utils import json_schema_type, webmethod
 @json_schema_type
 class JobInfo(BaseModel):
     uuid: str
+    type: str
 
 
 class ListJobsResponse(BaseModel):

@@ -38,8 +38,11 @@ _COMPLETED_STATUSES = {JobStatus.completed, JobStatus.failed}
 
 class Job:
     # TODO: add type hint for handler callable
-    def __init__(self, handler, deps: list[JobDependency] | None = None):
+    def __init__(self, job_type: str, handler, deps: list[JobDependency] | None = None):
         super().__init__()
+        self.id = str(uuid.uuid4())
+        # TODO: validate job_type (enum?)
+        self.type = job_type
         self._handler = handler
         self._deps = deps or []
         self._artifacts: list[JobArtifact] = []
@@ -185,8 +188,8 @@ class Scheduler:
 
     # called by provider to add job to queue
     def schedule(self, job: Job, job_uuid: JobID | None = None) -> JobID:
-        job_uuid = job_uuid or str(uuid.uuid4())
-
+        if job_uuid is None:
+            job_uuid = job.id
         print(f"Scheduling job {job_uuid}")
         self._jobs[job_uuid] = job
         job.status = JobStatus.scheduled
@@ -226,9 +229,9 @@ class Scheduler:
         del self._jobs[job_uuid]
 
     # TODO: return complete jobs? or just more stuff?
-    def get_jobs(self) -> list[JobID]:
+    def get_jobs(self) -> list[Job]:
         print("Getting jobs")
-        return list(self._jobs.keys())
+        return list(self._jobs.values())
 
     def get_artifacts(self, job_uuid) -> list[JobArtifact]:
         return self.get_job(job_uuid).artifacts

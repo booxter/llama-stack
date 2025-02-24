@@ -44,11 +44,11 @@ class DistributionJobsImpl(Jobs):
         pass
 
     async def list_jobs(self) -> ListJobsResponse:
-        job_uuids = list(itertools.chain(*[
+        jobs = list(itertools.chain(*[
             scheduler.get_jobs()
             for scheduler in _JOB_SCHEDULERS
         ]))
-        return ListJobsResponse(data=[JobInfo(uuid=job) for job in job_uuids])
+        return ListJobsResponse(data=[JobInfo(uuid=job.id, type=job.type) for job in jobs])
 
     # TODO: this should be improved
     async def delete_job(self, job_id: str) -> None:
