@@ -30,7 +30,9 @@ def available_providers() -> List[ProviderSpec]:
             adapter=AdapterSpec(
                 adapter_type="huggingface",
                 pip_packages=[
+                    "chardet",
                     "datasets",
+                    "pypdf",
                 ],
                 module="llama_stack.providers.remote.datasetio.huggingface",
                 config_class="llama_stack.providers.remote.datasetio.huggingface.HuggingfaceDatasetIOConfig",

@@ -144,12 +144,16 @@ class NaiveSchedulerBackend(SchedulerBackend):
     def schedule(self, job: Job):
         # TODO: this seems to run a single async at a time; what if they don't
         # cooperate properly? run each in a separate thread?
-        asyncio.run_coroutine_threadsafe(
-            job.handler(
-                functools.partial(self._on_log_message_cb, job),
-                functools.partial(self._on_status_change_cb, job),
-                functools.partial(self._on_artifact_collected_cb, job)
-            ), self._loop)
+        async def do():
+            try:
+                await job.handler(
+                    functools.partial(self._on_log_message_cb, job),
+                    functools.partial(self._on_status_change_cb, job),
+                    functools.partial(self._on_artifact_collected_cb, job))
+            except Exception as e:
+                print(e)
+                raise
+        asyncio.run_coroutine_threadsafe(do(), self._loop)
 
 
 # TODO: we should consider 3rd party libraries for alternative backends (celery?)

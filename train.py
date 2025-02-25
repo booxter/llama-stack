@@ -7,7 +7,7 @@ def create_http_client():
     from llama_stack_client import LlamaStackClient
 
     return LlamaStackClient(
-        base_url=f"http://localhost:{os.environ['LLAMA_STACK_PORT']}"
+        base_url=f"http://localhost:8321"
     )
 
 client = (
