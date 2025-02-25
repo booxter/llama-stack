@@ -231,7 +231,7 @@ def worker_process_entrypoint(
     while True:
         try:
             task = req_gen.send(result)
-            if isinstance(task, str) and task == EndSentinel():
+            if isinstance(task, str) and task == _END_SENTINEL:
                 break
 
             assert isinstance(task, TaskRequest)
