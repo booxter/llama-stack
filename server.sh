@@ -11,9 +11,9 @@ CONFIG=~/.llama/distributions/$TEMPLATE/$TEMPLATE-run.yaml
 if [ x$1 = x--clean ]; then
   rm -rf venv $LLS_VENV
   $PYTHON -m venv venv
-  . ./venv/bin/activate
-  pip install -e .
 fi
+. ./venv/bin/activate
+pip install -e .
 
 # Load model if not already
 echo test | ollama run llama3.2:3b-instruct-fp16 --keepalive -1m
