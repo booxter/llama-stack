@@ -3,14 +3,9 @@ from datetime import datetime
 from enum import Enum
 import functools
 import threading
-from typing import Any, Dict, Tuple, Iterable
+from typing import Any, Dict, Tuple, Iterable, TypeAlias
 import uuid
 
-
-type JobDependency = Dict[str, Any] # TBD exact shape
-type JobArtifact = Dict[str, Any] # TBD exact shape
-type JobID = str # TBD exact shape
-type JobStateTransition = Tuple[datetime, JobStatus]
 
 # TODO: testing: add unit tests for the scheduler module
 # TODO: testing: introduce a stub provider, implement unit and e2e tests using it
@@ -31,6 +26,12 @@ class JobStatus(Enum):
   paused = "paused"
   failed = "failed"
   completed = "completed"
+
+
+JobDependency: TypeAlias = Dict[str, Any] # TBD exact shape
+JobArtifact: TypeAlias = Dict[str, Any] # TBD exact shape
+JobID: TypeAlias = str # TBD exact shape
+JobStateTransition: TypeAlias = Tuple[datetime, JobStatus]
 
 
 _COMPLETED_STATUSES = {JobStatus.completed, JobStatus.failed}
