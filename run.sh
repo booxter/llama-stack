@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -ex
+
+export INFERENCE_MODEL=meta-llama/Llama-3.2-3B-Instruct
+
+# Load model if not already
+echo test | ollama run llama3.2:3b-instruct-fp16 --keepalive -1m
+
+PYTHON=/usr/bin/python3.11
+LLS_VENV=train
+TEMPLATE=experimental-post-training
+CONFIG=~/.llama/distributions/$TEMPLATE/$TEMPLATE-run.yaml
+
+rm -rf venv $LLS_VENV
+$PYTHON -m venv venv
+. ./venv/bin/activate
+pip install -e .
+
+export UV_PYTHON=$(which python)
+llama stack build --template $TEMPLATE --image-type venv --image-name $LLS_VENV
+llama stack run --image-type venv --image-name venv $CONFIG
+
