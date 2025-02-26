@@ -17,6 +17,10 @@ $PYTHON -m venv venv
 . ./venv/bin/activate
 pip install -e .
 
+if ! [ -e ~/.llama/checkpoints/ ]; then
+  llama download --source meta --model-id  Llama3.2-3B-Instruct
+fi
+
 export UV_PYTHON=$(which python)
 llama stack build --template $TEMPLATE --image-type venv --image-name $LLS_VENV
 llama stack run --image-type venv --image-name venv $CONFIG
