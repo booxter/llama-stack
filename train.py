@@ -114,7 +114,7 @@ while True:
         break
 
     print("Waiting for job to complete...")
-    time.sleep(30)
+    time.sleep(5)
 
 end_time = time.time()
 print("Job completed in", end_time - start_time, "seconds!")
