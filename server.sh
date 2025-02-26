@@ -3,19 +3,20 @@
 set -ex
 
 export INFERENCE_MODEL=meta-llama/Llama-3.2-3B-Instruct
-
-# Load model if not already
-echo test | ollama run llama3.2:3b-instruct-fp16 --keepalive -1m
-
 PYTHON=/usr/bin/python3.11
 LLS_VENV=train
 TEMPLATE=experimental-post-training
 CONFIG=~/.llama/distributions/$TEMPLATE/$TEMPLATE-run.yaml
 
-rm -rf venv $LLS_VENV
-$PYTHON -m venv venv
-. ./venv/bin/activate
-pip install -e .
+if [ x$1 = x--clean ]; then
+  rm -rf venv $LLS_VENV
+  $PYTHON -m venv venv
+  . ./venv/bin/activate
+  pip install -e .
+fi
+
+# Load model if not already
+echo test | ollama run llama3.2:3b-instruct-fp16 --keepalive -1m
 
 if ! [ -e ~/.llama/checkpoints/ ]; then
   llama download --source meta --model-id  Llama3.2-3B-Instruct
