@@ -3,7 +3,7 @@
 set -ex
 
 export INFERENCE_MODEL=meta-llama/Llama-3.2-3B-Instruct
-PYTHON=/usr/bin/python3.11
+PYTHON=$(which python3.11)
 LLS_VENV=train
 TEMPLATE=experimental-post-training
 CONFIG=~/.llama/distributions/$TEMPLATE/$TEMPLATE-run.yaml
