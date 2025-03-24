@@ -10,7 +10,7 @@ import functools
 import threading
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Coroutine, Dict, Iterable, Tuple, TypeAlias
+from typing import Any, Callable, Dict, Iterable, Tuple, TypeAlias
 
 from pydantic import BaseModel
 
@@ -41,9 +41,7 @@ class JobArtifact(BaseModel):
     metadata: Dict[str, Any]
 
 
-JobHandler = Callable[
-    [Callable[[str], None], Callable[[JobStatus], None], Callable[[JobArtifact], None]], Coroutine[Any, Any, None]
-]
+JobHandler = Any  # TODO: make it explicitly a pipeline type
 
 
 LogMessage: TypeAlias = Tuple[datetime, str]
@@ -174,6 +172,7 @@ class _NaiveSchedulerBackend(_SchedulerBackend):
         on_status_change_cb: Callable[[JobStatus], None],
         on_artifact_collected_cb: Callable[[JobArtifact], None],
     ) -> None:
+        # TODO: Assert correct type of handler?
         async def do():
             try:
                 job.status = JobStatus.running
@@ -195,8 +194,34 @@ class _NaiveSchedulerBackend(_SchedulerBackend):
         pass
 
 
+class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
+    def schedule(
+        self,
+        job: Job,
+        on_log_message_cb: Callable[[str], None],
+        on_status_change_cb: Callable[[JobStatus], None],
+        on_artifact_collected_cb: Callable[[JobArtifact], None],
+    ) -> None:
+        async def do():
+            from kfp import local
+
+            local.init(runner=local.SubprocessRunner())
+
+            job.status = JobStatus.running
+            try:
+                job.handler()
+                job.status = JobStatus.completed
+            except Exception as e:
+                job.status = JobStatus.failed
+                on_log_message_cb(str(e))
+                logger.exception(f"Job {job.id} failed.")
+
+        asyncio.run_coroutine_threadsafe(do(), self._loop)
+
+
 _BACKENDS = {
     "naive": _NaiveSchedulerBackend,
+    "kubeflow": _KubeflowSchedulerBackend,
 }
 
 

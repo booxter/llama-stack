@@ -46,9 +46,6 @@ from llama_stack.distribution.utils.context import preserve_contexts_async_gener
 from llama_stack.log import get_logger
 from llama_stack.providers.datatypes import Api
 from llama_stack.providers.inline.telemetry.meta_reference.config import TelemetryConfig
-from llama_stack.providers.inline.telemetry.meta_reference.telemetry import (
-    TelemetryAdapter,
-)
 from llama_stack.providers.utils.telemetry.tracing import (
     CURRENT_TRACE_CONTEXT,
     end_trace,
@@ -406,6 +403,8 @@ def main(args: Optional[argparse.Namespace] = None):
     if Api.telemetry in impls:
         setup_logger(impls[Api.telemetry])
     else:
+        from llama_stack.providers.inline.telemetry.meta_reference.telemetry import TelemetryAdapter
+
         setup_logger(TelemetryAdapter(TelemetryConfig(), {}))
 
     all_endpoints = get_all_api_endpoints()

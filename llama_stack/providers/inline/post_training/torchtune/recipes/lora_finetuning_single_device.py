@@ -34,8 +34,6 @@ from torchtune.training.metric_logging import DiskLogger
 from tqdm import tqdm
 
 from llama_stack.apis.common.training_types import PostTrainingMetric
-from llama_stack.apis.datasetio import DatasetIO
-from llama_stack.apis.datasets import Datasets
 from llama_stack.apis.post_training import (
     Checkpoint,
     LoraFinetuningConfig,
@@ -46,9 +44,6 @@ from llama_stack.apis.post_training import (
 from llama_stack.distribution.utils.config_dirs import DEFAULT_CHECKPOINT_DIR
 from llama_stack.distribution.utils.model_utils import model_local_dir
 from llama_stack.models.llama.sku_list import resolve_model
-from llama_stack.providers.inline.post_training.common.validator import (
-    validate_input_dataset_schema,
-)
 from llama_stack.providers.inline.post_training.torchtune.common import utils
 from llama_stack.providers.inline.post_training.torchtune.common.checkpointer import (
     TorchtuneCheckpointer,
@@ -86,9 +81,9 @@ class LoraFinetuningSingleDevice:
         model: str,
         checkpoint_dir: Optional[str],
         algorithm_config: LoraFinetuningConfig | QATFinetuningConfig | None,
-        datasetio_api: DatasetIO,
-        datasets_api: Datasets,
+        data: list[dict[str, Any]],
     ) -> None:
+        self.data = data
         self.job_uuid = job_uuid
         self.training_config = training_config
         if not isinstance(algorithm_config, LoraFinetuningConfig):
@@ -149,9 +144,6 @@ class LoraFinetuningSingleDevice:
             if training_config.efficiency_config.enable_activation_offloading:
                 self._enable_activation_offloading = training_config.efficiency_config.enable_activation_offloading
 
-        self.datasetio_api = datasetio_api
-        self.datasets_api = datasets_api
-
     async def load_checkpoint(self):
         def get_checkpoint_files(checkpoint_dir: str) -> List[str]:
             try:
@@ -196,7 +188,7 @@ class LoraFinetuningSingleDevice:
         log.info("Loss is initialized.")
 
         self._training_sampler, self._training_dataloader = await self._setup_data(
-            dataset_id=self.training_config.data_config.dataset_id,
+            data=self.data,
             tokenizer=self._tokenizer,
             shuffle=self._shuffle,
             batch_size=self._batch_size,
@@ -204,7 +196,7 @@ class LoraFinetuningSingleDevice:
 
         if self.training_config.data_config.validation_dataset_id:
             _, self._validation_dataloader = await self._setup_data(
-                dataset_id=self.training_config.data_config.validation_dataset_id,
+                data=self.data,
                 tokenizer=self._tokenizer,
                 shuffle=False,
                 batch_size=self._batch_size,
@@ -325,25 +317,13 @@ class LoraFinetuningSingleDevice:
 
     async def _setup_data(
         self,
-        dataset_id: str,
         tokenizer: Llama3Tokenizer,
         shuffle: bool,
         batch_size: int,
+        data: list[dict[str, Any]],
     ) -> Tuple[DistributedSampler, DataLoader]:
-        async def fetch_rows(dataset_id: str):
-            return await self.datasetio_api.iterrows(
-                dataset_id=dataset_id,
-                limit=-1,
-            )
+        rows = data
 
-        all_rows = await fetch_rows(dataset_id)
-        rows = all_rows.data
-
-        await validate_input_dataset_schema(
-            datasets_api=self.datasets_api,
-            dataset_id=dataset_id,
-            dataset_type=self._data_format.value,
-        )
         data_transform = await utils.get_data_transform(self._data_format)
         ds = SFTDataset(
             rows,

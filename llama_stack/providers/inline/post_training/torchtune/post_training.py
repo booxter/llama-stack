@@ -23,12 +23,11 @@ from llama_stack.apis.post_training import (
 from llama_stack.providers.inline.post_training.torchtune.config import (
     TorchtunePostTrainingConfig,
 )
-from llama_stack.providers.inline.post_training.torchtune.recipes.lora_finetuning_single_device import (
-    LoraFinetuningSingleDevice,
-)
 from llama_stack.providers.utils.scheduler import JobArtifact, Scheduler
 from llama_stack.providers.utils.scheduler import JobStatus as SchedulerJobStatus
 from llama_stack.schema_utils import webmethod
+
+from .pipeline import pipeline
 
 
 class TrainingArtifactType(Enum):
@@ -49,7 +48,7 @@ class TorchtunePostTrainingImpl:
         self.config = config
         self.datasetio_api = datasetio_api
         self.datasets_api = datasets
-        self._scheduler = Scheduler()
+        self._scheduler = Scheduler(backend="kubeflow")
 
     async def shutdown(self) -> None:
         await self._scheduler.shutdown()
@@ -81,38 +80,40 @@ class TorchtunePostTrainingImpl:
         checkpoint_dir: Optional[str],
         algorithm_config: Optional[AlgorithmConfig],
     ) -> PostTrainingJob:
-        if isinstance(algorithm_config, LoraFinetuningConfig):
-
-            async def handler(on_log_message_cb, on_status_change_cb, on_artifact_collected_cb):
-                on_log_message_cb("Starting Lora finetuning")
-
-                recipe = LoraFinetuningSingleDevice(
-                    self.config,
-                    job_uuid,
-                    training_config,
-                    hyperparam_search_config,
-                    logger_config,
-                    model,
-                    checkpoint_dir,
-                    algorithm_config,
-                    self.datasetio_api,
-                    self.datasets_api,
-                )
-                await recipe.setup()
-
-                resources_allocated, checkpoints = await recipe.train()
-
-                on_artifact_collected_cb(self._resources_stats_to_artifact(resources_allocated))
-                for checkpoint in checkpoints:
-                    artifact = self._checkpoint_to_artifact(checkpoint)
-                    on_artifact_collected_cb(artifact)
-
-                on_status_change_cb(SchedulerJobStatus.completed)
-                on_log_message_cb("Lora finetuning completed")
-        else:
+        if not isinstance(algorithm_config, LoraFinetuningConfig):
             raise NotImplementedError()
 
-        job_uuid = self._scheduler.schedule(_JOB_TYPE_SUPERVISED_FINE_TUNE, job_uuid, handler)
+        async def fetch_rows(dataset_id: str):
+            return await self.datasetio_api.iterrows(
+                dataset_id=dataset_id,
+                limit=-1,
+            )
+
+        dataset_id = training_config.data_config.dataset_id
+        all_rows = await fetch_rows(dataset_id)
+        data = all_rows.data
+
+        config = self.config.model_dump(exclude_none=True, mode="json")
+        training_config_ = training_config.model_dump(exclude_none=True, mode="json")
+        hyperparam_search_config = hyperparam_search_config
+        logger_config = logger_config
+        model = model
+        checkpoint_dir = checkpoint_dir
+        algorithm_config_ = algorithm_config.model_dump(exclude_none=True, mode="json")
+
+        p = pipeline(
+            config,
+            data,
+            job_uuid,
+            training_config_,
+            hyperparam_search_config,
+            logger_config,
+            model,
+            checkpoint_dir or "null",
+            algorithm_config_,
+        )
+
+        job_uuid = self._scheduler.schedule(_JOB_TYPE_SUPERVISED_FINE_TUNE, job_uuid, p)
         return PostTrainingJob(job_uuid=job_uuid)
 
     async def preference_optimize(

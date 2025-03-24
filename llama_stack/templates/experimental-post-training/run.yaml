@@ -57,7 +57,7 @@ providers:
   - provider_id: torchtune-post-training
     provider_type: inline::torchtune
     config: {
-      checkpoint_format: huggingface
+      checkpoint_format: meta
     }
   agents:
   - provider_id: meta-reference
