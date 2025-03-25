@@ -36,7 +36,7 @@ def resolve_model(descriptor: str) -> Optional[Model]:
 
 def all_registered_models() -> List[Model]:
     return (
-        llama2_family() + llama3_family() + llama3_1_family() + llama3_2_family() + llama3_3_family() + safety_models()
+        llama2_family() + llama3_family() + llama3_1_family() + llama3_2_family() + llama3_3_family() + safety_models() + granite_models()
     )
 
 
@@ -317,7 +317,7 @@ def llama3_2_base_models() -> List[Model]:
             huggingface_repo="meta-llama/Llama-3.2-3B",
             recommended_sampling_params=recommended_sampling_params(),
             arch_args={
-                "dim": 3072,
+                "dim": 2048,
                 "n_layers": 28,
                 "n_heads": 24,
                 "n_kv_heads": 8,
@@ -602,7 +602,7 @@ def arch_args_1b() -> dict:
 
 def arch_args_3b() -> dict:
     return {
-        "dim": 3072,
+        "dim": 2048,
         "n_layers": 28,
         "n_heads": 24,
         "n_kv_heads": 8,
@@ -897,6 +897,51 @@ def safety_models() -> List[Model]:
                 "use_scaled_rope": False,
             },
             pth_file_count=1,
+        ),
+    ]
+
+
+def granite_models() -> List[Model]:
+    return [
+        Model(
+            core_model_id=CoreModelId.granite_3_2_2b,
+            description="Granite 3.2 2b model Instruct",
+            huggingface_repo="ibm-granite/granite-3.2-2b-instruct",
+            # TODO: fix settings
+            recommended_sampling_params=recommended_sampling_params(),
+            arch_args={
+                "dim": 8192,
+                "n_layers": 80,
+                "n_heads": 64,
+                "n_kv_heads": 8,
+                "vocab_size": LLAMA3_VOCAB_SIZE,
+                "ffn_dim_multiplier": 1.3,
+                "multiple_of": 4096,
+                "norm_eps": 1e-05,
+                "rope_theta": 500000.0,
+                "use_scaled_rope": True,
+            },
+            pth_file_count=8,
+        ),
+        Model(
+            core_model_id=CoreModelId.granite_3_2_8b,
+            description="Granite 3.2 8b model Instruct",
+            huggingface_repo="ibm-granite/granite-3.2-8b-instruct",
+            # TODO: fix settings
+            recommended_sampling_params=recommended_sampling_params(),
+            arch_args={
+                "dim": 8192,
+                "n_layers": 80,
+                "n_heads": 64,
+                "n_kv_heads": 8,
+                "vocab_size": LLAMA3_VOCAB_SIZE,
+                "ffn_dim_multiplier": 1.3,
+                "multiple_of": 4096,
+                "norm_eps": 1e-05,
+                "rope_theta": 500000.0,
+                "use_scaled_rope": True,
+            },
+            pth_file_count=8,
         ),
     ]
 

@@ -39,20 +39,17 @@ class TorchtuneCheckpointer:
         model_type: str,
     ):
         # Fail fast if ``checkpoint_files`` is invalid
-        # TODO: support loading more than one file
-        if len(checkpoint_files) != 1:
-            raise ValueError(
-                "Currently we only support reading from a single torchtune checkpoint file. "
-                f"Got {len(checkpoint_files)} files instead."
-            )
-        self._checkpoint_file = checkpoint_files[0]
+        self._checkpoint_files = checkpoint_files
         self._model_id = model_id
         self._training_algorithm = training_algorithm
         self._checkpoint_dir = Path(checkpoint_dir)
-        self._model_type = ModelType[model_type]
+        try:
+            self._model_type = ModelType[model_type]
+        except KeyError:
+            self._model_type = None
         self._output_dir = output_dir
         # get ckpt paths
-        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, self._checkpoint_file)
+        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, self._checkpoint_files[0])
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -66,8 +63,10 @@ class TorchtuneCheckpointer:
             )
 
             state_dict[training.MODEL_KEY] = llama3_vision_meta_to_tune(model_state_dict)
-        else:
+        elif self._model_type is not None:
             state_dict[training.MODEL_KEY] = convert_weights.meta_to_tune(model_state_dict)
+        else:
+            state_dict[training.MODEL_KEY] = convert_weights.hf_to_tune(model_state_dict)
 
         # llama3_2 has tied weights, so we need to remove the output.weight key
         if self._model_type == ModelType.LLAMA3_2:

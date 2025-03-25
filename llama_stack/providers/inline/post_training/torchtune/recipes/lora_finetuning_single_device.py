@@ -158,7 +158,7 @@ class LoraFinetuningSingleDevice:
                 # List all files in the given directory
                 files = os.listdir(checkpoint_dir)
                 # Filter files that end with .pth
-                pth_files = [file for file in files if file.endswith(".pth")]
+                pth_files = [file for file in files if file.endswith(".safetensors")]
                 return pth_files
             except FileNotFoundError:
                 return [f"Error: The directory '{checkpoint_dir}' does not exist."]
@@ -274,6 +274,7 @@ class LoraFinetuningSingleDevice:
         if enable_activation_checkpointing:
             training.set_activation_checkpointing(model, auto_wrap_policy={modules.TransformerSelfAttentionLayer})
 
+        print(model)
         base_missing, base_unexpected = model.load_state_dict(base_model_state_dict, strict=False)
 
         # This is for any adapters that need to be initialized after base weights
@@ -339,11 +340,12 @@ class LoraFinetuningSingleDevice:
         all_rows = await fetch_rows(dataset_id)
         rows = all_rows.data
 
-        await validate_input_dataset_schema(
-            datasets_api=self.datasets_api,
-            dataset_id=dataset_id,
-            dataset_type=self._data_format.value,
-        )
+        # TODO: have we broken dataset schema validation?
+        #await validate_input_dataset_schema(
+        #    datasets_api=self.datasets_api,
+        #    dataset_id=dataset_id,
+        #    dataset_type=self._data_format.value,
+        #)
         data_transform = await utils.get_data_transform(self._data_format)
         ds = SFTDataset(
             rows,

@@ -10,6 +10,7 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
+import functools
 from typing import Callable, Dict
 
 import torch
@@ -46,6 +47,18 @@ MODEL_CONFIGS: Dict[str, ModelConfig] = {
         tokenizer_type=llama3_tokenizer,
         checkpoint_type="LLAMA3",
     ),
+    # TODO: change this to the correct settings
+    "Granite-3-8B": ModelConfig(
+        model_definition=lora_llama3_1_8b,
+        tokenizer_type=llama3_tokenizer,
+        checkpoint_type="hf",
+    ),
+    # TODO: change this to the correct settings
+    "Granite-3-2B": ModelConfig(
+        model_definition=lora_llama3_2_3b,
+        tokenizer_type=functools.partial(llama3_tokenizer, max_seq_len=3072),
+        checkpoint_type="hf",
+    ),
 }
 
 DATA_FORMATS: Dict[str, Transform] = {
@@ -56,6 +69,7 @@ DATA_FORMATS: Dict[str, Transform] = {
 
 def _validate_model_id(model_id: str) -> Model:
     model = resolve_model(model_id)
+    import pdb; pdb.set_trace()
     if model is None or model.core_model_id.value not in MODEL_CONFIGS:
         raise ValueError(f"Model {model_id} is not supported.")
     return model

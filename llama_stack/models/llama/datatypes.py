@@ -278,6 +278,9 @@ class CoreModelId(Enum):
     llama_guard_3_11b_vision = "Llama-Guard-3-11B-Vision"
     llama_guard_3_1b = "Llama-Guard-3-1B"
 
+    granite_3_2_8b = "Granite-3-8B"
+    granite_3_2_2b = "Granite-3-2B"
+
 
 def is_multimodal(model_id) -> bool:
     if model_id in [
