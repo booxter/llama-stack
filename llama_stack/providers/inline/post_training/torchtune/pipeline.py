@@ -18,23 +18,7 @@ def pipeline(
     checkpoint_dir,
     algorithm_config,
 ):
-    # not all of these deps are needed; whatever, for now
-    @dsl.component(
-        packages_to_install=[
-            "httpx",
-            "torch",
-            "torchvision",
-            "torchtune",
-            "torchtext",
-            "transformers",
-            "pandas",
-            "numpy",
-            "scikit-learn",
-            "pytorch-lightning",
-            "llama-stack",
-            "torchao",
-        ]
-    )
+    @dsl.component
     def component(
         config: dict = {},
         data: list = [],

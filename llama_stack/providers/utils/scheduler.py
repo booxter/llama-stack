@@ -205,7 +205,7 @@ class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
         async def do():
             from kfp import local
 
-            local.init(runner=local.SubprocessRunner())
+            local.init(runner=local.SubprocessRunner(use_venv=False))
 
             job.status = JobStatus.running
             try:
