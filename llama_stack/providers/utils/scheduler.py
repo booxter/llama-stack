@@ -194,11 +194,13 @@ class _NaiveSchedulerBackend(_SchedulerBackend):
         pass
 
 
-class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
+class _KFPSchedulerBackendBase(_NaiveSchedulerBackend):
     def __init__(self, to_artifacts: Callable[[Any], list[JobArtifact]]):
         super().__init__()
         self._to_artifacts = to_artifacts
 
+
+class _KFPLocalSchedulerBackend(_KFPSchedulerBackendBase):
     def schedule(
         self,
         job: Job,
@@ -227,9 +229,23 @@ class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
         asyncio.run_coroutine_threadsafe(do(), self._loop)
 
 
+class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
+    def schedule(
+        self,
+        job: Job,
+        on_log_message_cb: Callable[[str], None],
+        on_status_change_cb: Callable[[JobStatus], None],
+        on_artifact_collected_cb: Callable[[JobArtifact], None],
+    ) -> None:
+        # TODO: post pipeline asynchronously
+        # TODO: move error handling for local and remote cases into base class, if possible
+        pass
+
+
 _BACKENDS = {
     "naive": _NaiveSchedulerBackend,
-    "kubeflow": _KubeflowSchedulerBackend,
+    "kfp-local": _KFPLocalSchedulerBackend,
+    "kfp-remote": _KFPRemoteSchedulerBackend,
 }
 
 
