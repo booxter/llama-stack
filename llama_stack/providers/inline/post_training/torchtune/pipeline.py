@@ -72,6 +72,9 @@ def _serialize(obj: BaseModel) -> dict:
     return obj.model_dump(exclude_none=True, mode="json")
 
 
+# TODO: it would be nice if we could pass pydantic models transparently between
+# components (with serialization and deserialization offloaded to kfp
+# machinery)
 def pipeline(
     config: TorchtunePostTrainingConfig,
     data: list[dict],
