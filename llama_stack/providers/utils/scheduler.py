@@ -8,6 +8,7 @@ import abc
 import asyncio
 import functools
 import threading
+import warnings
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, Iterable, Tuple, TypeAlias
@@ -230,6 +231,66 @@ class _KFPLocalSchedulerBackend(_KFPSchedulerBackendBase):
 
 
 class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
+
+    # stolen from: https://github.com/meta-llama/llama-stack/compare/main...cdoern:llama-stack:ilab-dsp
+    # TODO: confirm that @cdoern is ok with it; (and confirm the source of the code)
+    # TODO: check if all this code is really needed - doesn't kfp library provide a simpler interface?
+    @staticmethod
+    def get_kfp_client():
+        from kfp import Client
+        from kubernetes.client import CustomObjectsApi
+        from kubernetes.client.configuration import Configuration
+        from kubernetes.client.exceptions import ApiException
+        from kubernetes.config import list_kube_config_contexts
+        from kubernetes.config.config_exception import ConfigException
+        from kubernetes.config.kube_config import load_kube_config
+
+
+        config = Configuration()
+        try:
+            load_kube_config(client_configuration=config)
+            token = config.api_key["authorization"].split(" ")[-1]
+        except (KeyError, ConfigException) as e:
+            raise ApiException(
+                401, "Unauthorized, try running `oc login` command first"
+            ) from e
+        Configuration.set_default(config)
+
+        _, active_context = list_kube_config_contexts()
+        namespace = active_context["context"]["namespace"]
+
+        # TODO: this is not really kfp, is it? do we have to deal with ocp vs k8s here?
+        dspas = CustomObjectsApi().list_namespaced_custom_object(
+            "datasciencepipelinesapplications.opendatahub.io",
+            "v1alpha1",
+            namespace,
+            "datasciencepipelinesapplications",
+        )
+
+        try:
+            dspa = dspas["items"][0]
+        except IndexError as e:
+            raise ApiException(404, "DataSciencePipelines resource not found") from e
+
+        try:
+            if dspa["spec"]["dspVersion"] != "v2":
+                raise KeyError
+        except KeyError as e:
+            raise EnvironmentError(
+                "Installed version of Kubeflow Pipelines does not meet minimal version criteria. Use KFPv2 please."
+            ) from e
+
+        try:
+            host = dspa["status"]["components"]["apiServer"]["externalUrl"]
+        except KeyError as e:
+            raise ApiException(
+                409,
+                "DataSciencePipelines resource is not ready. Check for .status.components.apiServer",
+            ) from e
+
+        with warnings.catch_warnings(action="ignore"):
+            return Client(existing_token=token, host=host)
+
     def schedule(
         self,
         job: Job,
@@ -237,9 +298,14 @@ class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
         on_status_change_cb: Callable[[JobStatus], None],
         on_artifact_collected_cb: Callable[[JobArtifact], None],
     ) -> None:
-        # TODO: post pipeline asynchronously
-        # TODO: move error handling for local and remote cases into base class, if possible
-        pass
+        # TODO: post pipeline to remote from async handler?
+        # TODO: move error handling for local and remote cases into base class, if possible?
+        client = self.get_kfp_client()
+        client.create_run_from_pipeline_func(
+            pipeline_func=job.handler,
+            run_name=job.id,
+        )
+        # TODO: actually monitor how the run is doing; extract artifacts; update status as needed...
 
 
 _BACKENDS = {
