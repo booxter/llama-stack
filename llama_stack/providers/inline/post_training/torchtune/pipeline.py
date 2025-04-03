@@ -4,9 +4,8 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
-from typing import Any, Callable
-
 from kfp import dsl
+from kfp.dsl import Artifact
 from pydantic import BaseModel
 
 from llama_stack.apis.post_training import (
@@ -19,7 +18,7 @@ from .config import TorchtunePostTrainingConfig
 @dsl.component
 def component(
     config: dict,
-    data: list,
+    data: list, # should be an Input?
     job_uuid: str,
     training_config: dict,
     hyperparam_search_config: dict,
@@ -27,7 +26,7 @@ def component(
     model: str,
     checkpoint_dir: str,
     algorithm_config: dict,
-):
+) -> Artifact:
     from llama_stack.apis.post_training import (
         LoraFinetuningConfig,
         TrainingConfig,
@@ -51,16 +50,25 @@ def component(
         data=data,
     )
 
-    def _do(actions: list[Callable]) -> None:
-        import asyncio
-        for action in actions:
-            asyncio.run(action())
+    import asyncio
+    asyncio.run(recipe.setup())
+    resources_allocated, checkpoints = asyncio.run(recipe.train())
 
-    _do([recipe.setup, recipe.train])
+    # TODO: how does one reuse code with kfp?
+    def _serialize(obj) -> dict:
+        return obj.model_dump(exclude_none=True, mode="json")
+
+    return Artifact(
+        uri=checkpoints[-1].path,
+        metadata={
+            'resources_allocated': resources_allocated,
+            'checkpoints': [_serialize(checkpoint) for checkpoint in checkpoints],
+        }
+    )
 
 
 # TODO: should serialize use strings to pass models between components?
-def _serialize(obj: BaseModel) -> dict[str, Any]:
+def _serialize(obj: BaseModel) -> dict:
     return obj.model_dump(exclude_none=True, mode="json")
 
 
@@ -86,8 +94,8 @@ def pipeline(
         model: str = model,
         checkpoint_dir: str = checkpoint_dir,
         algorithm_config: dict = _serialize(algorithm_config),
-    ):
-        component(
+    ) -> Artifact:
+        return component(
             config=config,
             data=data,
             job_uuid=job_uuid,
@@ -97,6 +105,6 @@ def pipeline(
             model=model,
             checkpoint_dir=checkpoint_dir,
             algorithm_config=algorithm_config,
-        )
+        ).output
 
     return p

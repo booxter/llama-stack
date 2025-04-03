@@ -48,10 +48,19 @@ class TorchtunePostTrainingImpl:
         self.config = config
         self.datasetio_api = datasetio_api
         self.datasets_api = datasets
-        self._scheduler = Scheduler(backend="kubeflow")
+        self._scheduler = Scheduler(backend="kubeflow", to_artifacts=self._to_artifacts)
 
     async def shutdown(self) -> None:
         await self._scheduler.shutdown()
+
+    @classmethod
+    def _to_artifacts(cls, in_artifact) -> list[JobArtifact]:
+        return [
+            TorchtunePostTrainingImpl._checkpoint_to_artifact(Checkpoint.model_validate(checkpoint))
+            for checkpoint in in_artifact.metadata['checkpoints']
+        ] + [
+            cls._resources_stats_to_artifact(in_artifact.metadata['resources_allocated'])
+        ]
 
     @staticmethod
     def _checkpoint_to_artifact(checkpoint: Checkpoint) -> JobArtifact:

@@ -195,6 +195,10 @@ class _NaiveSchedulerBackend(_SchedulerBackend):
 
 
 class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
+    def __init__(self, to_artifacts: Callable[[Any], list[JobArtifact]]):
+        super().__init__()
+        self._to_artifacts = to_artifacts
+
     def schedule(
         self,
         job: Job,
@@ -209,8 +213,12 @@ class _KubeflowSchedulerBackend(_NaiveSchedulerBackend):
 
             job.status = JobStatus.running
             try:
-                job.handler()
+                artifacts = self._to_artifacts(job.handler().output)
+                for artifact in artifacts:
+                    on_artifact_collected_cb(artifact)
+
                 job.status = JobStatus.completed
+            # TODO: Confirm failures in pipelines are caught
             except Exception as e:
                 job.status = JobStatus.failed
                 on_log_message_cb(str(e))
@@ -225,18 +233,20 @@ _BACKENDS = {
 }
 
 
-def _get_backend_impl(backend: str) -> _SchedulerBackend:
+def _get_backend_impl(backend: str, to_artifacts: Callable[[Any], list[JobArtifact]] | None = None) -> _SchedulerBackend:
     try:
+        if to_artifacts is not None:
+            return _BACKENDS[backend](to_artifacts=to_artifacts)
         return _BACKENDS[backend]()
     except KeyError as e:
         raise ValueError(f"Unknown backend {backend}") from e
 
 
 class Scheduler:
-    def __init__(self, backend: str = "naive"):
+    def __init__(self, backend: str = "naive", to_artifacts: Callable[[Any], list[JobArtifact]] | None = None):
         # TODO: if server crashes, job states are lost; we need to persist jobs on disc
         self._jobs: dict[JobID, Job] = {}
-        self._backend = _get_backend_impl(backend)
+        self._backend = _get_backend_impl(backend, to_artifacts)
 
     def _on_log_message_cb(self, job: Job, message: str) -> None:
         msg = (datetime.now(timezone.utc), message)
