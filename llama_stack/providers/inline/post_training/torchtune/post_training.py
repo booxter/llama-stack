@@ -70,6 +70,10 @@ class TorchtunePostTrainingImpl:
             metadata=resources_stats,
         )
 
+    async def _get_all_data(self, dataset_id: str) -> list[Dict[str, Any]]:
+        all_rows = await self.datasetio_api.iterrows(dataset_id=dataset_id, limit=-1)
+        return all_rows.data
+
     async def supervised_fine_tune(
         self,
         job_uuid: str,
@@ -83,34 +87,17 @@ class TorchtunePostTrainingImpl:
         if not isinstance(algorithm_config, LoraFinetuningConfig):
             raise NotImplementedError()
 
-        async def fetch_rows(dataset_id: str):
-            return await self.datasetio_api.iterrows(
-                dataset_id=dataset_id,
-                limit=-1,
-            )
-
-        dataset_id = training_config.data_config.dataset_id
-        all_rows = await fetch_rows(dataset_id)
-        data = all_rows.data
-
-        config = self.config.model_dump(exclude_none=True, mode="json")
-        training_config_ = training_config.model_dump(exclude_none=True, mode="json")
-        hyperparam_search_config = hyperparam_search_config
-        logger_config = logger_config
-        model = model
-        checkpoint_dir = checkpoint_dir
-        algorithm_config_ = algorithm_config.model_dump(exclude_none=True, mode="json")
-
+        data = await self._get_all_data(training_config.data_config.dataset_id)
         p = pipeline(
-            config,
+            self.config,
             data,
             job_uuid,
-            training_config_,
+            training_config,
             hyperparam_search_config,
             logger_config,
             model,
             checkpoint_dir or "null",
-            algorithm_config_,
+            algorithm_config,
         )
 
         job_uuid = self._scheduler.schedule(_JOB_TYPE_SUPERVISED_FINE_TUNE, job_uuid, p)
