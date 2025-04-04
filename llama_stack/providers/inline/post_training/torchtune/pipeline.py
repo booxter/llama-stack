@@ -12,10 +12,33 @@ from llama_stack.apis.post_training import (
     LoraFinetuningConfig,
     TrainingConfig,
 )
+from llama_stack.apis.datatypes import Api
+from llama_stack.distribution.distribution import get_provider_registry
+
 from .config import TorchtunePostTrainingConfig
 
 
-@dsl.component
+def _get_provider_pip_dependencies(api_type: Api, provider_name: str| None = None) -> list[str]:
+    deps = ["llama-stack"]  # always install the base package
+    provider_registry = get_provider_registry()
+    for name, spec in provider_registry[api_type].items():
+        if provider_name is None or name == provider_name:
+            deps += spec.pip_packages
+    return deps
+
+
+def lls_component(api_type: Api, provider_name: str| None = None):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            return dsl.component(
+                func=func,
+                packages_to_install=_get_provider_pip_dependencies(api_type, provider_name)
+            )(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+@lls_component(Api.post_training, "inline::torchtune")
 def component(
     config: dict,
     data: list, # should be an Input?
