@@ -233,7 +233,7 @@ class _KFPLocalSchedulerBackend(_KFPSchedulerBackendBase):
 class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
 
     # stolen from: https://github.com/meta-llama/llama-stack/compare/main...cdoern:llama-stack:ilab-dsp
-    # TODO: confirm that @cdoern is ok with it; (and confirm the source of the code)
+    # TODO: confirm the source of the code
     # TODO: check if all this code is really needed - doesn't kfp library provide a simpler interface?
     @staticmethod
     def get_kfp_client():

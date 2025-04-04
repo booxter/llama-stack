@@ -81,13 +81,23 @@ def component(
     def _serialize(obj) -> dict:
         return obj.model_dump(exclude_none=True, mode="json")
 
-    return Artifact(
-        uri=checkpoints[-1].path,
+    a = Artifact(
+        uri=dsl.get_uri(),
         metadata={
             'resources_allocated': resources_allocated,
-            'checkpoints': [_serialize(checkpoint) for checkpoint in checkpoints],
+            'checkpoints': [],
         }
     )
+
+    # Copy checkpoint files to pipeline artifacts
+    import shutil
+    for checkpoint in checkpoints:
+        chk = checkpoint.model_copy()
+        chk.path = f"{a.path}/{checkpoint.identifier}"
+        a.metadata['checkpoints'].append(_serialize(chk))
+        shutil.copytree(checkpoint.path, chk.path)
+
+    return a
 
 
 # TODO: should serialize use strings to pass models between components?
@@ -97,7 +107,7 @@ def _serialize(obj: BaseModel) -> dict:
 
 # TODO: it would be nice if we could pass pydantic models transparently between
 # components (with serialization and deserialization offloaded to kfp
-# machinery)
+# machinery): https://github.com/kubeflow/pipelines/issues/10690
 def pipeline(
     config: TorchtunePostTrainingConfig,
     data: list[dict],
