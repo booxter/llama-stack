@@ -19,7 +19,10 @@ from .config import TorchtunePostTrainingConfig
 
 
 def _get_provider_pip_dependencies(api_type: Api, provider_name: str| None = None) -> list[str]:
-    deps = ["llama-stack"]  # always install the base package
+    deps = [
+        # TODO: how to achieve identical llama-stack code on both sides?
+        "git+https://github.com/booxter/llama-stack.git@kflow#egg=llama-stack",
+    ] # always install the base package
     provider_registry = get_provider_registry()
     for name, spec in provider_registry[api_type].items():
         if provider_name is None or name == provider_name:
@@ -27,10 +30,15 @@ def _get_provider_pip_dependencies(api_type: Api, provider_name: str| None = Non
     return deps
 
 
+# TODO: we should probably have a container image with all dependencies pre-built
+_BASE_IMAGE = "quay.io/fedora/python-311:311"
+
+
 def lls_component(api_type: Api, provider_name: str| None = None):
     def decorator(func):
         def wrapper(*args, **kwargs):
             return dsl.component(
+                base_image=_BASE_IMAGE,
                 func=func,
                 packages_to_install=_get_provider_pip_dependencies(api_type, provider_name)
             )(*args, **kwargs)
@@ -95,6 +103,7 @@ def component(
         chk = checkpoint.model_copy()
         chk.path = f"{a.path}/{checkpoint.identifier}"
         a.metadata['checkpoints'].append(_serialize(chk))
+        # TODO: handle any errors
         shutil.copytree(checkpoint.path, chk.path)
 
     return a
@@ -116,7 +125,7 @@ def pipeline(
     hyperparam_search_config: dict,
     logger_config: dict,
     model: str,
-    checkpoint_dir: str,
+    checkpoint_dir: str, # TODO: remove the input argument
     algorithm_config: LoraFinetuningConfig,
 ):
     @dsl.pipeline(name=job_uuid)
