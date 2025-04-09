@@ -55,6 +55,7 @@ class Job:
     def __init__(self, job_type: JobType, job_id: JobID, handler: JobHandler):
         super().__init__()
         self.id = job_id
+        self._provider_id: str | None = None
         self._type = job_type
         self._handler = handler
         self._artifacts: list[JobArtifact] = []
@@ -112,6 +113,16 @@ class Job:
     # TODO: implement
     def cancel(self) -> None:
         raise NotImplementedError
+
+    @property
+    def provider_id(self) -> str | None:
+        return self._provider_id
+
+    @provider_id.setter
+    def provider_id(self, provider_id: str) -> None:
+        if self._provider_id is not None:
+            raise ValueError(f"Job {self.id} already has a provider id ({self._provider_id})")
+        self._provider_id = provider_id
 
 
 class _SchedulerBackend(abc.ABC):
@@ -301,11 +312,32 @@ class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
     ) -> None:
         async def do():
             client = self.get_kfp_client()
-            client.create_run_from_pipeline_func(
+            res = client.create_run_from_pipeline_func(
                 pipeline_func=job.handler,
                 run_name=job.id,
             )
-            # TODO: actually monitor how the run is doing; extract artifacts; update status as needed...
+            job.provider_id = res.run_id
+            job.status = JobStatus.running
+
+            # TODO: extract artifacts...
+            while not job.completed_at:
+                run = client.get_run(job.provider_id)
+
+                # Revisit the map between states in KFP and LLS
+                match run.state:
+                    # TODO: are there enums for the states?
+                    case "SUCCEEDED":
+                        on_status_change_cb(JobStatus.completed)
+                    case "FAILED" | "CANCELED" | "SKIPPED":
+                        on_status_change_cb(JobStatus.failed)
+                    case "RUNNING":
+                        logger.info(f"Job {job.id} (kfp: {job.provider_id}) is still running")
+                    case _:
+                        logger.warning(f"Unhandled run state: {run.state}")
+
+                # TODO: is there a better way to wait for the job to finish without polling?
+                await asyncio.sleep(5)
+
         asyncio.run_coroutine_threadsafe(do(), self._loop)
 
 
