@@ -62,6 +62,7 @@ def component(
     logger_config: dict,
     model: str,
     checkpoint_dir: str,
+    model_artifact: Artifact,
     algorithm_config: dict,
 ) -> Artifact:
     from llama_stack.apis.post_training import (
@@ -75,6 +76,22 @@ def component(
         LoraFinetuningSingleDevice,
     )
 
+    # Extract checkpoint from passed artifact
+    import os
+    import tarfile
+    model_dir = os.path.dirname(model_artifact.uri)
+
+    dest_dir = os.path.join(
+        model_dir,
+        # This is the first part of the model/name - TODO: clunky and will have to be dealt more gracefully
+        os.path.dirname(model)
+    )
+    # TODO: Though named .gz, the file is actually a tar archive (my bad!)
+    with tarfile.open(model_artifact.uri) as tar:
+        tar.extractall(path=dest_dir)
+
+    # Ignore passed value
+    checkpoint_dir = os.path.join(model_dir, model)
     recipe = LoraFinetuningSingleDevice(
         TorchtunePostTrainingConfig(**config),
         job_uuid,
@@ -144,8 +161,13 @@ def pipeline(
         logger_config: dict = logger_config,
         model: str = model,
         checkpoint_dir: str = checkpoint_dir,
+        model_artifact: Artifact,
         algorithm_config: dict = _serialize(algorithm_config),
     ) -> Artifact:
+        importer_task = dsl.importer(
+            artifact_uri='s3://rhods-dsp-dev/llama3.2-3b-instruct.tar.gz',
+            artifact_class=dsl.Dataset,
+        }
         return component(
             config=config,
             data=data,
@@ -155,6 +177,7 @@ def pipeline(
             logger_config=logger_config,
             model=model,
             checkpoint_dir=checkpoint_dir,
+            model_artifact=importer_task.output,
             algorithm_config=algorithm_config,
         ).output
 
