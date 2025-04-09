@@ -319,7 +319,8 @@ class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
             job.provider_id = res.run_id
             job.status = JobStatus.running
 
-            # TODO: extract artifacts...
+            # TODO: extract artifacts... is it possible via REST API?
+            # See: https://github.com/kubeflow/pipelines/issues/9858
             while not job.completed_at:
                 run = client.get_run(job.provider_id)
 
