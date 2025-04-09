@@ -27,6 +27,12 @@ def _get_provider_pip_dependencies(api_type: Api, provider_name: str| None = Non
     for name, spec in provider_registry[api_type].items():
         if provider_name is None or name == provider_name:
             deps += spec.pip_packages
+
+    # drop unnecessary dependencies
+    # TODO: make it more generic / separate scheduler deps?
+    deps.remove("kfp")
+    deps.remove("kubernetes")
+
     return deps
 
 

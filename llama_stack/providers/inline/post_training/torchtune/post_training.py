@@ -48,8 +48,8 @@ class TorchtunePostTrainingImpl:
         self.config = config
         self.datasetio_api = datasetio_api
         self.datasets_api = datasets
-        self._scheduler = Scheduler(backend="kfp-local", to_artifacts=self._to_artifacts)
-        #self._scheduler = Scheduler(backend="kfp-remote", to_artifacts=self._to_artifacts)
+        #self._scheduler = Scheduler(backend="kfp-local", to_artifacts=self._to_artifacts)
+        self._scheduler = Scheduler(backend="kfp-remote", to_artifacts=self._to_artifacts)
 
     async def shutdown(self) -> None:
         await self._scheduler.shutdown()
