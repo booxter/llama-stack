@@ -12,7 +12,7 @@ LLS_VENV=train
 TEMPLATE=experimental-post-training
 CONFIG=~/.llama/distributions/$TEMPLATE/$TEMPLATE-run.yaml
 
-if [ x$1 = x--clean ]; then
+if [ x$1 = x--clean -o ! -f venv ]; then
   rm -rf venv $LLS_VENV
   $PYTHON -m venv venv
 fi
