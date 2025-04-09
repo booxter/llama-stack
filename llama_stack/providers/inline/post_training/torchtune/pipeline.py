@@ -5,7 +5,7 @@
 # the root directory of this source tree.
 
 from kfp import dsl
-from kfp.dsl import Artifact
+from kfp.dsl import Artifact, Input, Output
 from pydantic import BaseModel
 
 from llama_stack.apis.post_training import (
@@ -62,9 +62,10 @@ def component(
     logger_config: dict,
     model: str,
     checkpoint_dir: str,
-    model_artifact: Artifact,
     algorithm_config: dict,
-) -> Artifact:
+    model_artifact: Input[Artifact],
+    output: Output[Artifact],
+):
     from llama_stack.apis.post_training import (
         LoraFinetuningConfig,
         TrainingConfig,
@@ -81,19 +82,14 @@ def component(
     import tarfile
     model_dir = os.path.dirname(model_artifact.path)
 
-    dest_dir = os.path.join(
-        model_dir,
-        # This is the first part of the model/name - TODO: clunky and will have to be dealt more gracefully
-        os.path.dirname(model)
-    )
+    dest_dir = os.path.join(model_dir, "model_artifact")
     # TODO: Though named .gz, the file is actually a tar archive (muh bad!)
     with tarfile.open(model_artifact.path) as tar:
         tar.extractall(path=dest_dir)
 
     # Ignore passed checkpoint value
-    checkpoint_dir = os.path.join(model_dir, model)
-
-    os.system(f"find {checkpoint_dir}")
+    # TODO: change layout of the tarball and avoid hardcoding the dirname here
+    checkpoint_dir = os.path.join(dest_dir, "Llama3.2-3B-Instruct")
 
     recipe = LoraFinetuningSingleDevice(
         TorchtunePostTrainingConfig(**config),
@@ -115,24 +111,19 @@ def component(
     def _serialize(obj) -> dict:
         return obj.model_dump(exclude_none=True, mode="json")
 
-    a = Artifact(
-        uri=dsl.get_uri(),
-        metadata={
-            'resources_allocated': resources_allocated,
-            'checkpoints': [],
-        }
-    )
+    output.metadata = {
+        'resources_allocated': resources_allocated,
+        'checkpoints': [],
+    }
 
     # Copy checkpoint files to pipeline artifacts
     import shutil
     for checkpoint in checkpoints:
         chk = checkpoint.model_copy()
-        chk.path = f"{a.path}/{checkpoint.identifier}"
-        a.metadata['checkpoints'].append(_serialize(chk))
+        chk.path = f"{output.path}/{checkpoint.identifier}"
+        output.metadata['checkpoints'].append(_serialize(chk))
         # TODO: handle any errors
         shutil.copytree(checkpoint.path, chk.path)
-
-    return a
 
 
 # TODO: should serialize use strings to pass models between components?
@@ -183,8 +174,8 @@ def pipeline(
             logger_config=logger_config,
             model=model,
             checkpoint_dir=checkpoint_dir,
-            model_artifact=importer_task.output,
             algorithm_config=algorithm_config,
+            model_artifact=importer_task.output,
         ).output
 
     return p
