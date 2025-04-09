@@ -372,6 +372,7 @@ class Scheduler:
         self._backend.on_log_message_cb(job, msg)
 
     def _on_status_change_cb(self, job: Job, status: JobStatus) -> None:
+        self._on_log_message_cb(job, f"Job status changed from {job.status} to {status}")
         job.status = status
         self._backend.on_status_change_cb(job, status)
 
