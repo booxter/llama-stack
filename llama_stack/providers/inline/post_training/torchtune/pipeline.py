@@ -5,6 +5,7 @@
 # the root directory of this source tree.
 
 import enum
+import os
 
 from kfp import dsl
 from kfp.dsl import Artifact, Input, Output
@@ -156,9 +157,17 @@ def pipeline(
     # TODO: pass it through artifact to avoid issues with size
     data = data[:10]
 
+    if mode == PipelineMode.LOCAL:
+        artifact_prefix = os.environ["HOME"]
+    else:
+        artifact_prefix = "s3://rhods-dsp-dev"
+
+    fname = "llama3.2-3b-instruct.tar.gz"
+    artifact_uri = f"{artifact_prefix}/{fname}"
+
     @dsl.pipeline(name=job_uuid)
     def p(
-        mode: str = mode.value,
+        artifact_uri: str = artifact_uri,
         config: dict = _serialize(config),
         data: list = data,
         job_uuid: str = job_uuid,
@@ -169,18 +178,10 @@ def pipeline(
         checkpoint_dir: str = checkpoint_dir,
         algorithm_config: dict = _serialize(algorithm_config),
     ) -> Artifact:
-        fname = "llama3.2-3b-instruct.tar.gz"
-        if mode == "local":
-            import os
-            a = dsl.importer(
-                artifact_uri=f"{os.environ['HOME']}/{fname}",
-                artifact_class=dsl.Model,
-            )
-        else:
-            a = dsl.importer(
-                artifact_uri=f's3://rhods-dsp-dev/{fname}',
-                artifact_class=dsl.Model,
-            )
+        a = dsl.importer(
+            artifact_uri=artifact_uri,
+            artifact_class=dsl.Model,
+        )
 
         return component(
             config=config,
