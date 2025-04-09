@@ -29,15 +29,13 @@ from llama_stack.apis.inference import (
     LogProbConfig,
     Message,
     ResponseFormat,
+    SamplingParams,
     TextTruncation,
     ToolChoice,
     ToolConfig,
-)
-from llama_stack.models.llama.datatypes import (
-    SamplingParams,
     ToolDefinition,
-    ToolPromptFormat,
 )
+from llama_stack.models.llama.datatypes import ToolPromptFormat
 from llama_stack.providers.utils.inference.model_registry import (
     ModelRegistryHelper,
 )
@@ -205,7 +203,7 @@ class NVIDIAInferenceAdapter(Inference, ModelRegistryHelper):
             extra_body["input_type"] = task_type_options[task_type]
 
         try:
-            response = await self._client.embeddings.create(
+            response = await self._get_client(model).embeddings.create(
                 model=model,
                 input=input,
                 extra_body=extra_body,

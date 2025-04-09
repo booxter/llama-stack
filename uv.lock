@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.10"
 resolution-markers = [
     "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
@@ -1316,7 +1315,7 @@ wheels = [
 
 [[package]]
 name = "llama-stack"
-version = "0.1.8"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "blobfile" },
@@ -1363,6 +1362,7 @@ docs = [
     { name = "sphinx-autobuild" },
     { name = "sphinx-copybutton" },
     { name = "sphinx-design" },
+    { name = "sphinx-rtd-dark-mode" },
     { name = "sphinx-rtd-theme" },
     { name = "sphinx-tabs" },
     { name = "sphinxcontrib-mermaid" },
@@ -1415,7 +1415,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "jinja2", marker = "extra == 'codegen'", specifier = ">=3.1.6" },
     { name = "jsonschema" },
-    { name = "llama-stack-client", specifier = ">=0.1.8" },
+    { name = "llama-stack-client", specifier = ">=0.2.1" },
     { name = "mcp", marker = "extra == 'test'" },
     { name = "myst-parser", marker = "extra == 'docs'" },
     { name = "nbval", marker = "extra == 'dev'" },
@@ -1445,6 +1445,7 @@ requires-dist = [
     { name = "sphinx-autobuild", marker = "extra == 'docs'" },
     { name = "sphinx-copybutton", marker = "extra == 'docs'" },
     { name = "sphinx-design", marker = "extra == 'docs'" },
+    { name = "sphinx-rtd-dark-mode", marker = "extra == 'docs'" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "sphinx-tabs", marker = "extra == 'docs'" },
     { name = "sphinxcontrib-mermaid", marker = "extra == 'docs'" },
@@ -1460,11 +1461,10 @@ requires-dist = [
     { name = "types-setuptools", marker = "extra == 'dev'" },
     { name = "uvicorn", marker = "extra == 'dev'" },
 ]
-provides-extras = ["dev", "unit", "test", "docs", "codegen"]
 
 [[package]]
 name = "llama-stack-client"
-version = "0.1.8"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1481,9 +1481,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/cb/b058f62f52c7a29cc7238866cac357550bfc8ff99afcd1805436ef906181/llama_stack_client-0.1.8.tar.gz", hash = "sha256:2f1ff22c891c4c03e9b8fa18adbc0fb4d6e7337181d90a897760ec368ef3269c", size = 242834 }
+sdist = { url = "https://files.pythonhosted.org/packages/bb/5c/5fed03a18bfd6fb27dcf531504dfdaa5e9b79447f4530196baf16bbdddfe/llama_stack_client-0.2.1.tar.gz", hash = "sha256:2be016898ad9f12e57d6125cae26253b8cce7d894c028b9e42f58d421e7825ce", size = 242809 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/aa/d02c314b93be7ce0e447a7d7e3cbbea1955e06651abdf6a273714058e4aa/llama_stack_client-0.1.8-py3-none-any.whl", hash = "sha256:e34e42ff491b3146130f6cf741fd5e901f8cd66302e8608e514655f74cc3df73", size = 274304 },
+    { url = "https://files.pythonhosted.org/packages/90/e7/23051fe5073f2fda3f509b19d0e4d7e76e3a8cfaa3606077a2bcef9a0bf0/llama_stack_client-0.2.1-py3-none-any.whl", hash = "sha256:8db3179aab48d6abf82b89ef0a2014e404faf4a72f825c0ffd467fdc4ab5f02c", size = 274293 },
 ]
 
 [[package]]
@@ -3305,6 +3305,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2b/69/b34e0cb5336f09c6866d53b4a19d76c227cdec1bbc7ac4de63ca7d58c9c7/sphinx_design-0.6.1.tar.gz", hash = "sha256:b44eea3719386d04d765c1a8257caca2b3e6f8421d7b3a5e742c0fd45f84e632", size = 2193689 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl", hash = "sha256:b11f37db1a802a183d61b159d9a202314d4d2fe29c163437001324fe2f19549c", size = 2215338 },
+]
+
+[[package]]
+name = "sphinx-rtd-dark-mode"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sphinx-rtd-theme" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/7c/bb1c20458f498d907d78a357b246a0ee1a3a94ee5a5ec39378726e646661/sphinx_rtd_dark_mode-1.3.0.tar.gz", hash = "sha256:0272bf3d9ef620921adc67e5634a66969419e744da84ea18830adacfdb160ea8", size = 8627 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/f1/16b919bf5d33b282f13c0c39be687c658a33debb2caf4137a63be4bb21f6/sphinx_rtd_dark_mode-1.3.0-py3-none-any.whl", hash = "sha256:478da69c72a2a2ed7665c1f633cc612039f5801df416fd5f7c4820c2fe08c9c5", size = 10031 },
 ]
 
 [[package]]
