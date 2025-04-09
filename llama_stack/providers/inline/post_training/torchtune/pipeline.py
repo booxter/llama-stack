@@ -4,6 +4,8 @@
 # This source code is licensed under the terms described in the LICENSE file in
 # the root directory of this source tree.
 
+import enum
+
 from kfp import dsl
 from kfp.dsl import Artifact, Input, Output
 from pydantic import BaseModel
@@ -16,6 +18,11 @@ from llama_stack.apis.datatypes import Api
 from llama_stack.distribution.distribution import get_provider_registry
 
 from .config import TorchtunePostTrainingConfig
+
+
+class PipelineMode(enum.Enum):
+    LOCAL = "local"
+    REMOTE = "remote"
 
 
 def _get_provider_pip_dependencies(api_type: Api, provider_name: str| None = None) -> list[str]:
@@ -135,6 +142,7 @@ def _serialize(obj: BaseModel) -> dict:
 # components (with serialization and deserialization offloaded to kfp
 # machinery): https://github.com/kubeflow/pipelines/issues/10690
 def pipeline(
+    mode: PipelineMode,
     config: TorchtunePostTrainingConfig,
     data: list[dict],
     job_uuid: str,
@@ -150,6 +158,7 @@ def pipeline(
 
     @dsl.pipeline(name=job_uuid)
     def p(
+        mode: str = mode.value,
         config: dict = _serialize(config),
         data: list = data,
         job_uuid: str = job_uuid,
@@ -160,10 +169,18 @@ def pipeline(
         checkpoint_dir: str = checkpoint_dir,
         algorithm_config: dict = _serialize(algorithm_config),
     ) -> Artifact:
-        importer_task = dsl.importer(
-            artifact_uri='s3://rhods-dsp-dev/llama3.2-3b-instruct.tar.gz',
-            artifact_class=dsl.Dataset,
-        )
+        fname = "llama3.2-3b-instruct.tar.gz"
+        if mode == "local":
+            import os
+            a = dsl.importer(
+                artifact_uri=f"{os.environ['HOME']}/{fname}",
+                artifact_class=dsl.Model,
+            )
+        else:
+            a = dsl.importer(
+                artifact_uri=f's3://rhods-dsp-dev/{fname}',
+                artifact_class=dsl.Model,
+            )
 
         return component(
             config=config,
@@ -175,7 +192,7 @@ def pipeline(
             model=model,
             checkpoint_dir=checkpoint_dir,
             algorithm_config=algorithm_config,
-            model_artifact=importer_task.output,
+            model_artifact=a.output,
         ).output
 
     return p

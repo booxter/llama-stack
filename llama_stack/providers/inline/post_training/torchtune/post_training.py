@@ -27,7 +27,7 @@ from llama_stack.providers.utils.scheduler import JobArtifact, Scheduler
 from llama_stack.providers.utils.scheduler import JobStatus as SchedulerJobStatus
 from llama_stack.schema_utils import webmethod
 
-from .pipeline import pipeline
+from .pipeline import pipeline, PipelineMode
 
 
 class TrainingArtifactType(Enum):
@@ -48,8 +48,10 @@ class TorchtunePostTrainingImpl:
         self.config = config
         self.datasetio_api = datasetio_api
         self.datasets_api = datasets
-        #self._scheduler = Scheduler(backend="kfp-local", to_artifacts=self._to_artifacts)
-        self._scheduler = Scheduler(backend="kfp-remote", to_artifacts=self._to_artifacts)
+
+        self._mode = PipelineMode.LOCAL
+        self._scheduler = Scheduler(backend=f"kfp-{self._mode.value}", to_artifacts=self._to_artifacts)
+        #self._scheduler = Scheduler(backend="kfp-remote", to_artifacts=self._to_artifacts)
 
     async def shutdown(self) -> None:
         await self._scheduler.shutdown()
@@ -99,6 +101,7 @@ class TorchtunePostTrainingImpl:
 
         data = await self._get_all_data(training_config.data_config.dataset_id)
         p = pipeline(
+            self._mode,
             self.config,
             data,
             job_uuid,
