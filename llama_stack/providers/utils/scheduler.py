@@ -291,6 +291,7 @@ class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
         with warnings.catch_warnings(action="ignore"):
             return Client(existing_token=token, host=host)
 
+    # TODO: move error handling for local and remote cases into base class, if possible?
     def schedule(
         self,
         job: Job,
@@ -298,14 +299,14 @@ class _KFPRemoteSchedulerBackend(_KFPSchedulerBackendBase):
         on_status_change_cb: Callable[[JobStatus], None],
         on_artifact_collected_cb: Callable[[JobArtifact], None],
     ) -> None:
-        # TODO: post pipeline to remote from async handler?
-        # TODO: move error handling for local and remote cases into base class, if possible?
-        client = self.get_kfp_client()
-        client.create_run_from_pipeline_func(
-            pipeline_func=job.handler,
-            run_name=job.id,
-        )
-        # TODO: actually monitor how the run is doing; extract artifacts; update status as needed...
+        async def do():
+            client = self.get_kfp_client()
+            client.create_run_from_pipeline_func(
+                pipeline_func=job.handler,
+                run_name=job.id,
+            )
+            # TODO: actually monitor how the run is doing; extract artifacts; update status as needed...
+        asyncio.run_coroutine_threadsafe(do(), self._loop)
 
 
 _BACKENDS = {
