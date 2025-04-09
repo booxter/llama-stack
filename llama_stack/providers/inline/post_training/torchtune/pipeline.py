@@ -79,7 +79,7 @@ def component(
     # Extract checkpoint from passed artifact
     import os
     import tarfile
-    model_dir = os.path.dirname(model_artifact.uri)
+    model_dir = os.path.dirname(model_artifact.path)
 
     dest_dir = os.path.join(
         model_dir,
@@ -87,11 +87,13 @@ def component(
         os.path.dirname(model)
     )
     # TODO: Though named .gz, the file is actually a tar archive (muh bad!)
-    with tarfile.open(model_artifact.uri) as tar:
+    with tarfile.open(model_artifact.path) as tar:
         tar.extractall(path=dest_dir)
 
     # Ignore passed checkpoint value
     checkpoint_dir = os.path.join(model_dir, model)
+
+    os.system(f"find {checkpoint_dir}")
 
     recipe = LoraFinetuningSingleDevice(
         TorchtunePostTrainingConfig(**config),
