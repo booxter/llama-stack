@@ -152,6 +152,9 @@ def pipeline(
     checkpoint_dir: str, # TODO: remove the input argument
     algorithm_config: LoraFinetuningConfig,
 ):
+    # TODO: pass it through artifact to avoid issues with size
+    data = data[:10]
+
     @dsl.pipeline(name=job_uuid)
     def p(
         config: dict = _serialize(config),
