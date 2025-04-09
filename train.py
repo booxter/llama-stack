@@ -14,23 +14,6 @@ client = (
     create_http_client()
 )
 
-# List available models
-models = client.models.list()
-print("--- Available models: ---")
-for m in models:
-    print(f"- {m.identifier}")
-print()
-
-#response = client.inference.chat_completion(
-#    model_id=os.environ["INFERENCE_MODEL"],
-#    messages=[
-#        {"role": "system", "content": "You are a helpful assistant."},
-#        {"role": "user", "content": "Write a haiku about coding"},
-#    ],
-#)
-#print(response.completion_message.content)
-
-
 simpleqa_dataset_id = "huggingface::simpleqa1"
 #_ = client.datasets.register(
 #    dataset_id=simpleqa_dataset_id,
@@ -50,7 +33,7 @@ _ = client.datasets.register(
     purpose="post-training/messages",
     source={
         "type": "uri",
-        "uri": "https://huggingface.co/datasets/llamastack/simpleqa",
+        "uri": "huggingface://datasets/llamastack/simpleqa?split=train",
     },
     dataset_id=simpleqa_dataset_id,
 )
